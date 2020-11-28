@@ -30,7 +30,6 @@ from zappa.asynchronous import task
 import concurrent.futures
 import signal
 
-import config as cfg
 import bot_buttons_cards as bc
 
 DEFAULT_AVATAR_URL= "http://bit.ly/SparkBot-512x512"
