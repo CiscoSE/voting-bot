@@ -163,7 +163,8 @@ def act_start_end_meeting(room_id, event_name, args_dict):
                 now = datetime.now()
                 file_name = now.strftime("%Y_%m_%d_%H_%M_")
                 
-                res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
+                # res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
+                res_url = my_url + "/lastcsvsummary/{}?filename={}".format(room_id, file_name)
                 flask_app.logger.debug("URL for summary CSV download: {}".format(res_url))
                 
                 webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
@@ -697,9 +698,9 @@ def last_csv_summary(room_id):
     try:
         now = create_timestamp()
         flask_app.logger.debug("Query results for timestamp {} and room_id {}".format(now, room_id))
-        meeting_start_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_START"), ScanIndexForward=False, Limit=500)
+        meeting_start_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_START"), ScanIndexForward=False, Limit=5000)
         flask_app.logger.debug("Found meeting start: {}".format(meeting_start_res))
-        meeting_end_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_END"), ScanIndexForward=False, Limit=500)
+        meeting_end_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_END"), ScanIndexForward=False, Limit=5000)
         flask_app.logger.debug("Found meeting end: {}".format(meeting_end_res))
         
         last_meeting_start = meeting_start_res["Items"][0]["sk"]
@@ -746,7 +747,7 @@ def last_csv_summary(room_id):
         cw.writerow(header_list)
         cw.writerows(complete_results)
         output = make_response(si.getvalue())
-        output.headers["Content-Disposition"] = "attachment; filename={}.csv".format(file_name + "_" + meeting_name)
+        output.headers["Content-Disposition"] = "attachment; filename={}.csv".format(file_name + meeting_name)
         output.headers["Content-type"] = "text/csv"
         return output
         
