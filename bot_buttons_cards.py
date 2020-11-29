@@ -32,6 +32,33 @@ WELCOME_TEMPLATE = {
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                         "body": [
                             {
+                                "type": "ColumnSet",
+                                "columns": [
+                                    {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "Název schůze:",
+                                                "horizontalAlignment": "Right"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                            {
+                                                "type": "Input.Text",
+                                                "placeholder": "Napište název",
+                                                "id": "meeting_subject"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
                                 "type": "ActionSet",
                                 "horizontalAlignment": "Right",
                                 "actions": [
@@ -57,7 +84,7 @@ START_MEETING_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "Schůze zahájena",
+            "text": "Schůze \"{{meeting_subject}}\" zahájena",
             "horizontalAlignment": "Center",
             "weight": "Bolder",
             "size": "Medium"
@@ -270,6 +297,33 @@ END_MEETING_TEMPLATE = {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                         "body": [
+                            {
+                                "type": "ColumnSet",
+                                "columns": [
+                                    {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                            {
+                                                "type": "TextBlock",
+                                                "text": "Název schůze:",
+                                                "horizontalAlignment": "Right"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "Column",
+                                        "width": "stretch",
+                                        "items": [
+                                            {
+                                                "type": "Input.Text",
+                                                "placeholder": "Napište název",
+                                                "id": "meeting_subject"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
                             {
                                 "type": "ActionSet",
                                 "horizontalAlignment": "Right",

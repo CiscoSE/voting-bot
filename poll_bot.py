@@ -32,6 +32,9 @@ import signal
 
 import bot_buttons_cards as bc
 
+from boto3.dynamodb.conditions import Key, Attr
+from boto3.dynamodb import types
+
 DEFAULT_AVATAR_URL= "http://bit.ly/SparkBot-512x512"
 # identification mapping in DB between form and submitted data
 DEFAULT_POLL_LIMIT = 20
@@ -124,19 +127,47 @@ def act_added_to_space(room_id, event_name, args_dict):
 def act_start_end_meeting(room_id, event_name, args_dict):
     try:
         flask_app.logger.debug("{} meeting args: {}".format(event_name, args_dict))
+        
+        # TODO remove previous start/end meeting form
+        
+        inputs = args_dict.get("inputs", {})
+
+        meeting_info = {
+            "subject": inputs.get("meeting_subject", "")
+        }
+        
+        timestamp = create_timestamp()
         if event_name == "ev_start_meeting":
             template = bc.START_MEETING_TEMPLATE
             form_type = "START_MEETING_FORM"
+            meeting_status = "MEETING_START"
         else:
             template = bc.END_MEETING_TEMPLATE
             form_type = "END_MEETING_FORM"
+            meeting_status = "MEETING_END"
             
             clear_meeting_presence(room_id)
+        
+        flask_app.logger.debug("Saving meeting \"{}\"status {}, timestamp {}".format(meeting_info["subject"], meeting_status, timestamp))
+        ddb.save_db_record(room_id, timestamp, meeting_status, **meeting_info)
+            
         user_info = webex_api.people.get(args_dict["personId"])
         form = nested_replace(template, "display_name", user_info.displayName)
+        form = nested_replace(form, "meeting_subject", meeting_info["subject"])
         attach = [bc.wrap_form(form)]
-        send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type)
+        msg_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type)
         
+        if event_name == "ev_end_meeting":
+            my_url = get_my_url()
+            if my_url:
+                now = datetime.now()
+                file_name = now.strftime("%Y_%m_%d_%H_%M_")
+                
+                res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
+                flask_app.logger.debug("URL for summary CSV download: {}".format(res_url))
+                
+                webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
+    
     except ApiError as e:
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
         
@@ -238,7 +269,11 @@ def publish_poll_results(room_id, form_id, subject):
         voter_columns["columns"].append(create_result_column(voters))
     vote_results.sort(key=lambda x: x["jmeno"].split(" ")[-1])
     
-    rslt = {"vote_results": vote_results}
+    rslt = {
+        "vote_results": vote_results,
+        "subject": subject,
+        "timestamp": create_timestamp()
+    }
     ddb.save_db_record(room_id, form_id, "RESULTS", **rslt)
         
     poll_result_attachment = nested_replace(bc.POLL_RESULTS_TEMPLATE, "poll_subject", subject)
@@ -249,17 +284,18 @@ def publish_poll_results(room_id, form_id, subject):
     
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
     
-    my_url = get_my_url()
-    if my_url:
-        result_name = unidecode(subject).lower().replace(" ", "_")
-        now = datetime.now()
-        file_name = now.strftime("%Y_%m_%d_%H_%M_") + result_name
-        
-        # res_url = my_url + url_for("csv_results", room_id = room_id, form_id = form_id, filename = file_name)
-        res_url = my_url + "/csvresults/{}/{}?filename={}".format(room_id, form_id, file_name)
-        flask_app.logger.debug("URL for CSV download: {}".format(res_url))
-        
-        webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
+    if len(vote_results) > 0:
+        my_url = get_my_url()
+        if my_url:
+            result_name = unidecode(subject).lower().replace(" ", "_")
+            now = datetime.now()
+            file_name = now.strftime("%Y_%m_%d_%H_%M_") + result_name
+            
+            # res_url = my_url + url_for("csv_results", room_id = room_id, form_id = form_id, filename = file_name)
+            res_url = my_url + "/csvresults/{}/{}?filename={}".format(room_id, form_id, file_name)
+            flask_app.logger.debug("URL for CSV download: {}".format(res_url))
+            
+            webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
     
 def create_result_column(result):
     column = []
@@ -307,6 +343,12 @@ MEETING_FSM = [
 ["POLL_RUNNING", "ev_poll_data", act_poll_data, "same_state"],
 ["POLL_RUNNING", "ev_end_poll", act_end_poll, "MEETING_ACTIVE"],
 ]
+
+def create_timestamp():
+    return datetime.utcnow().isoformat()[:-3]+'Z'
+    
+def parse_timestamp(time_str):
+    return datetime.fromisoformat(time_str.replace("Z", "+00:00"))
 
 def nested_replace( structure, original, new):
     if type(structure) == list:
@@ -641,6 +683,94 @@ def csv_results(room_id, form_id):
     output.headers["Content-Disposition"] = "attachment; filename={}.csv".format(file_name)
     output.headers["Content-type"] = "text/csv"
     return output
+    
+@flask_app.route("/lastcsvsummary/<room_id>", methods=["GET"])
+def last_csv_summary(room_id):
+    """
+    1. get meeting start and end
+    2. get all poll results, sort by date
+    3. get all unique users, sort by last name
+    4. create header with "name, poll_1, poll_2,..."
+    5. walk the results, create a list for each user line, empty string if user was not present
+    """
+    
+    try:
+        now = create_timestamp()
+        flask_app.logger.debug("Query results for timestamp {} and room_id {}".format(now, room_id))
+        meeting_start_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_START"), ScanIndexForward=False, Limit=500)
+        flask_app.logger.debug("Found meeting start: {}".format(meeting_start_res))
+        meeting_end_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_END"), ScanIndexForward=False, Limit=500)
+        flask_app.logger.debug("Found meeting end: {}".format(meeting_end_res))
+        
+        last_meeting_start = meeting_start_res["Items"][0]["sk"]
+        last_meeting_end = meeting_end_res["Items"][0]["sk"]
+        if last_meeting_end < last_meeting_start:
+            last_meeting_end = now
+            
+        meeting_name = unidecode(meeting_start_res["Items"][0].get("subject", "")).lower().replace(" ", "_")
+            
+        results_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id), FilterExpression=Attr("pvalue").eq("RESULTS") & Attr("timestamp").lte(last_meeting_end) & Attr("timestamp").gte(last_meeting_start), ScanIndexForward=True)
+        flask_app.logger.debug("Meeting results: {}".format(results_res))
+        results_items = results_res.get("Items")
+        
+        if len(results_items) == 0:
+            return "" # return not found
+            
+        results_items.sort(key=lambda x: x["timestamp"])
+            
+        user_list = []
+        subject_list = []
+        for poll_res in results_items:
+            vote_results = poll_res.get("vote_results", [])
+            user_list += get_name_from_results(vote_results)
+            subject_list.append(poll_res["subject"])
+            
+        user_list = list(set(user_list)) # get unique names
+        user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
+        flask_app.logger.debug("got user list: {}".format(user_list))
+        
+        header_list = ["jmeno"] + subject_list
+        complete_results = []
+        for user in user_list:
+            user_vote_list = [user]
+            for poll_res in results_items:
+                vote_results = poll_res.get("vote_results", [])
+                user_vote_list.append(get_vote_for_user(vote_results, user))
+                
+            complete_results.append(user_vote_list)
+            
+        file_name = request.args.get("filename", "export")
+            
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerow(header_list)
+        cw.writerows(complete_results)
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = "attachment; filename={}.csv".format(file_name + "_" + meeting_name)
+        output.headers["Content-type"] = "text/csv"
+        return output
+        
+    except Exception as e:
+        flask_app.logger.error("Last meeting CSV summary exception: {}".format(e))
+        
+    return ""
+        
+def get_name_from_results(vote_results):
+    name_list = []
+    for vote in vote_results:
+        name = vote.get("jmeno")
+        if name:
+            name_list.append(name)
+            
+    return name_list
+    
+def get_vote_for_user(vote_results, user):
+    for vote_item in vote_results:
+        if vote_item["jmeno"] == user:
+            return vote_item["volba"]
+            
+    return ""
+    
 
 """
 Startup procedure used to initiate @flask_app.before_first_request
