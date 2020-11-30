@@ -39,6 +39,7 @@ from boto3.dynamodb import types
 DEFAULT_AVATAR_URL= "http://bit.ly/SparkBot-512x512"
 # identification mapping in DB between form and submitted data
 DEFAULT_POLL_LIMIT = 20
+PUBLISH_PART_RESULTS = False
 
 FORM_DATA_MAP = {
     "WELCOME_FORM": "END_MEETING_DATA",
@@ -314,7 +315,7 @@ def publish_poll_results(room_id, form_id, subject):
     
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
     
-    if len(vote_results) > 0:
+    if PUBLISH_PART_RESULTS and len(vote_results) > 0:
         my_url = get_my_url()
         if my_url:
             result_name = unidecode(subject).lower().replace(" ", "_")
@@ -768,13 +769,16 @@ def last_csv_summary(room_id):
         bi = io.BytesIO()
         workbook = xlsxwriter.Workbook(bi)
         worksheet = workbook.add_worksheet()
+        worksheet.set_column(0, 0, 30)
+        top_row_format = workbook.add_format({'bold': True})
 
-        worksheet.write_row('A1', header_list)
+        worksheet.write_row('A1', header_list, top_row_format)
+        worksheet.autofilter(0, 1, len(complete_results)+1, len(header_list)-1)
         for row in range(0, len(complete_results)):
             worksheet.write_row('A'+str(row+2), complete_results[row])
         workbook.close()
 
-        output = bi.getvalue()
+        output = make_response(bi.getvalue())
         
         output.headers["Content-Disposition"] = "attachment; filename={}.xlsx".format(file_name + meeting_name)
         output.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
