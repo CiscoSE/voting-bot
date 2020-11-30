@@ -482,8 +482,18 @@ POLL_TEMPLATE = {
             "text": "{{display_name}} zahájil hlasování."
         },
         {
-            "type": "TextBlock",
-            "text": "Předmět hlasování: {{poll_subject}}"
+            "type": "RichTextBlock",
+            "inlines": [
+                {
+                    "type": "TextRun",
+                    "text": "Téma hlasování: "
+                },
+                {
+                    "type": "TextRun",
+                    "text": "{{poll_subject}}",
+                    "weight": "Bolder"
+                },
+            ]
         },
         {
             "type": "TextBlock",
