@@ -98,7 +98,7 @@ START_MEETING_TEMPLATE = {
             "inlines": [
                 {
                     "type": "TextRun",
-                    "text": "Aby byl váš hlas započítán, klikněte na tlačítko "
+                    "text": "Klikněte na tlačítko "
                 },
                 {
                     "type": "TextRun",
@@ -107,7 +107,7 @@ START_MEETING_TEMPLATE = {
                 },
                 {
                     "type": "TextRun",
-                    "text": "."
+                    "text": ". Jinak bude vaše přítomnost zaznamenána až od chvíle, kdy se aktivně zúčastníte hlasování."
                 }
             ]
         },

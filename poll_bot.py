@@ -130,6 +130,23 @@ def act_start_end_meeting(room_id, event_name, args_dict):
         
         # TODO remove previous start/end meeting form
         
+        moderators = get_moderators(room_id)
+        
+        if moderators:
+            person_id = args_dict["personId"]
+            if person_id not in moderators:
+                flask_app.logger.debug("{} is not a moderator in the roomId {}, ignorng start/end request".format(person_id, room_id))
+                room_details = webex_api.rooms.get(room_id)
+                room_name = room_details.title
+                action_name = "ukončit"
+                next_state = "MEETING_ACTIVE"
+                if event_name == "ev_start_meeting":
+                    action_name = "zahájit"
+                    next_state = "MEETING_INACTIVE"
+                send_message({"toPersonId": person_id}, "V Prostoru **{}** může schůzi {} pouze moderátor. Domluvte se s ním. Kdo je moderátorem je vidět v seznamu členů Prostoru.".format(room_name, action_name))
+                
+                return next_state
+        
         inputs = args_dict.get("inputs", {})
 
         meeting_info = {
@@ -158,19 +175,30 @@ def act_start_end_meeting(room_id, event_name, args_dict):
         msg_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type)
         
         if event_name == "ev_end_meeting":
-            my_url = get_my_url()
-            if my_url:
-                now = datetime.now()
-                file_name = now.strftime("%Y_%m_%d_%H_%M_")
-                
-                # res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
-                res_url = my_url + "/lastcsvsummary/{}?filename={}".format(room_id, file_name)
-                flask_app.logger.debug("URL for summary CSV download: {}".format(res_url))
-                
-                webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
+            results_items, meeting_name = get_last_meeting_results(room_id)
+            if len(results_items) > 0:
+                my_url = get_my_url()
+                if my_url:
+                    now = datetime.now()
+                    file_name = now.strftime("%Y_%m_%d_%H_%M_")
+                    
+                    # res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
+                    res_url = my_url + "/lastcsvsummary/{}?filename={}".format(room_id, file_name)
+                    flask_app.logger.debug("URL for summary CSV download: {}".format(res_url))
+                    
+                    webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
     
     except ApiError as e:
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
+        
+def get_moderators(room_id):
+    members = webex_api.memberships.list(roomId = room_id)
+    moderators = []
+    for member in members:
+        if member.isModerator:
+            moderators.append(member.personId)
+            
+    return moderators
         
 def clear_meeting_presence(room_id):
     present_users = get_present_users(room_id)
@@ -417,7 +445,9 @@ def group_info(bot_name):
 def greetings(personal=True):
     
     greeting_msg = """
-Dobrý den, jsem BOT pro řízení hlasování ve Webex Teams Space. Vše se odehrává pomocí formulářů, které vám budu posílat.
+Dobrý den, jsem BOT pro řízení hlasování ve Webex Teams Prostoru (Space). Vše se odehrává pomocí formulářů, které vám budu posílat.
+
+Přidejte mě do Prostoru, ve kterém chcete hlasovat.
 """
     if not personal:
         greeting_msg += " " + group_info(bot_name)
@@ -696,25 +726,10 @@ def last_csv_summary(room_id):
     """
     
     try:
-        now = create_timestamp()
-        flask_app.logger.debug("Query results for timestamp {} and room_id {}".format(now, room_id))
-        meeting_start_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_START"), ScanIndexForward=False, Limit=5000)
-        flask_app.logger.debug("Found meeting start: {}".format(meeting_start_res))
-        meeting_end_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_END"), ScanIndexForward=False, Limit=5000)
-        flask_app.logger.debug("Found meeting end: {}".format(meeting_end_res))
-        
-        last_meeting_start = meeting_start_res["Items"][0]["sk"]
-        last_meeting_end = meeting_end_res["Items"][0]["sk"]
-        if last_meeting_end < last_meeting_start:
-            last_meeting_end = now
-            
-        meeting_name = unidecode(meeting_start_res["Items"][0].get("subject", "")).lower().replace(" ", "_")
-            
-        results_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id), FilterExpression=Attr("pvalue").eq("RESULTS") & Attr("timestamp").lte(last_meeting_end) & Attr("timestamp").gte(last_meeting_start), ScanIndexForward=True)
-        flask_app.logger.debug("Meeting results: {}".format(results_res))
-        results_items = results_res.get("Items")
+        results_items, meeting_name = get_last_meeting_results(room_id)
         
         if len(results_items) == 0:
+            flask_app.logger.debug("empty results")
             return "" # return not found
             
         results_items.sort(key=lambda x: x["timestamp"])
@@ -755,7 +770,28 @@ def last_csv_summary(room_id):
         flask_app.logger.error("Last meeting CSV summary exception: {}".format(e))
         
     return ""
+    
+def get_last_meeting_results(room_id):
+    now = create_timestamp()
+    flask_app.logger.debug("Query results for timestamp {} and room_id {}".format(now, room_id))
+    meeting_start_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_START"), ScanIndexForward=False, Limit=5000)
+    flask_app.logger.debug("Found meeting start: {}".format(meeting_start_res))
+    meeting_end_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id) & Key("sk").lt(now), FilterExpression=Attr("pvalue").eq("MEETING_END"), ScanIndexForward=False, Limit=5000)
+    flask_app.logger.debug("Found meeting end: {}".format(meeting_end_res))
+    
+    last_meeting_start = meeting_start_res["Items"][0]["sk"]
+    last_meeting_end = meeting_end_res["Items"][0]["sk"]
+    if last_meeting_end < last_meeting_start:
+        last_meeting_end = now
         
+    meeting_name = unidecode(meeting_start_res["Items"][0].get("subject", "")).lower().replace(" ", "_")
+        
+    results_res = ddb.table.query(KeyConditionExpression=Key("pk").eq(room_id), FilterExpression=Attr("pvalue").eq("RESULTS") & Attr("timestamp").lte(last_meeting_end) & Attr("timestamp").gte(last_meeting_start), ScanIndexForward=True)
+    flask_app.logger.debug("Meeting results: {}".format(results_res))
+    results_items = results_res.get("Items")
+    
+    return results_items, meeting_name
+            
 def get_name_from_results(vote_results):
     name_list = []
     for vote in vote_results:
