@@ -24,6 +24,7 @@ from flask import Flask, request, redirect, url_for, make_response
 import io
 import csv
 from unidecode import unidecode
+import xlsxwriter
 
 from zappa.asynchronous import task
 
@@ -757,13 +758,26 @@ def last_csv_summary(room_id):
             
         file_name = request.args.get("filename", "export")
             
+        """
         si = io.StringIO()
         cw = csv.writer(si)
         cw.writerow(header_list)
         cw.writerows(complete_results)
         output = make_response(si.getvalue())
-        output.headers["Content-Disposition"] = "attachment; filename={}.csv".format(file_name + meeting_name)
-        output.headers["Content-type"] = "text/csv"
+        """
+        bi = io.BytesIO()
+        workbook = xlsxwriter.Workbook(bi)
+        worksheet = workbook.add_worksheet()
+
+        worksheet.write_row('A1', header_list)
+        for row in range(0, len(complete_results)):
+            worksheet.write_row('A'+str(row+2), complete_results[row])
+        workbook.close()
+
+        output = bi.getvalue()
+        
+        output.headers["Content-Disposition"] = "attachment; filename={}.xlsx".format(file_name + meeting_name)
+        output.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         return output
         
     except Exception as e:
