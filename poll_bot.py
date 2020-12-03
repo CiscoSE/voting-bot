@@ -276,7 +276,8 @@ def act_end_poll(room_id, event_name, args_dict):
     args_id = args_dict.get("form_id", None)
     if args_id and args_id != form_id:
         flask_app.logger.info("running form id and ending form id do not match, no action {} != {}". format(args_id, form_id))
-        return
+        return "POLL_RUNNING" # keep the poll running
+        
     if poll_state == "RUNNING":
         flask_app.logger.debug("deleting poll \"{}\" form {}".format(subject, form_id))
         try:
@@ -404,7 +405,6 @@ MEETING_FSM = [
 ["MEETING_ACTIVE", "ev_start_poll", act_start_poll, "POLL_RUNNING"],
 ["POLL_RUNNING", "ev_poll_data", act_poll_data, "same_state"],
 ["POLL_RUNNING", "ev_end_poll", act_end_poll, "MEETING_ACTIVE"],
-["POLL_RUNNING", "ev_force_end_poll", act_end_poll, "same_state"],
 ["any_state", "ev_removed_from_space", act_removed_from_space, "REMOVED"]
 ]
 
@@ -693,7 +693,7 @@ def detect_form_event(form_type, attachment_data):
         elif button_pressed == "start_poll":
             event = "ev_start_poll"
         elif button_pressed == "end_poll":
-            event = "ev_force_end_poll"
+            event = "ev_end_poll"
         elif button_pressed == "end_meeting":
             event = "ev_end_meeting"
     elif form_type == "SUBMIT_POLL_FORM":
