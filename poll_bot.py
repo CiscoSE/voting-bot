@@ -558,7 +558,6 @@ def handle_webhook_event(webhook):
     action_list = []
     if webhook["data"].get("personEmail") != bot_email:
         flask_app.logger.info(json.dumps(webhook))
-        pass
         
     msg = ""
     attach = []
@@ -568,7 +567,7 @@ def handle_webhook_event(webhook):
         
 # handle Bot's membership events (Bot added/removed from Space or 1-1 communication)
     if webhook["resource"] == "memberships":
-        if webhook["data"]["personEmail"] == bot_email:
+        if webhook["data"]["personId"] == bot_id:
             if webhook["event"] == "created":
                 personal_room = is_room_direct(webhook["data"]["roomId"])
                 if personal_room:
