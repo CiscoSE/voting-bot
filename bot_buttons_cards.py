@@ -243,6 +243,36 @@ START_MEETING_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
+                    "title": "Ukončit hlasování",
+                    "card": {
+                        "type": "AdaptiveCard",
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "body": [
+                            {
+                                "type": "ActionSet",
+                                "horizontalAlignment": "Right",
+                                "actions": [
+                                    {
+                                        "type": "Action.Submit",
+                                        "title": "Ukončit",
+                                        "id": "end_poll",
+                                        "data": {"action": "end_poll"}
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "id": "end_poll_card"
+                }
+            ],
+            "id": "end_poll_set"
+        },
+        {
+            "type": "ActionSet",
+            "horizontalAlignment": "Right",
+            "actions": [
+                {
+                    "type": "Action.ShowCard",
                     "title": "Ukončit schůzi",
                     "card": {
                         "type": "AdaptiveCard",

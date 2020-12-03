@@ -105,6 +105,8 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
                 save_current_state(room_id, new_state)
                 flask_app.logger.debug("FSM transition {} -> {}, event: {}, function: {}".format(current_state, new_state, event_name, fsm_action.__name__))
             break
+    else:
+        flask_app.logger.debug("Unhandled FSM event \"{}\"".format(event_name))
             
 def get_current_state(room_id):
     state = None
@@ -125,6 +127,9 @@ def act_added_to_space(room_id, event_name, args_dict):
     attach = [bc.wrap_form(bc.WELCOME_TEMPLATE)]
     form_type = "WELCOME_FORM"
     send_message({"roomId": room_id}, "welcome form", attachments=attach, form_type=form_type)
+    
+def act_removed_from_space(room_id, event_name, args_dict):
+    flask_app.logger.debug("removed from space {}".format(room_id))
 
 def act_start_end_meeting(room_id, event_name, args_dict):
     try:
@@ -232,10 +237,24 @@ def act_start_poll(room_id, event_name, args_dict):
         message_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type, form_params=inputs)
         
         inputs["form_id"] = message_id
+        
+        save_last_poll_state(room_id, "RUNNING", inputs)
         request_poll_end(room_id, inputs)
             
     except ApiError as e:
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
+        
+def save_last_poll_state(room_id, state, inputs):
+    flask_app.logger.debug("Saving poll state \"{}\" in space {}, inputs: {}".format(state, room_id, inputs))
+    ddb.save_db_record(room_id, "POLL_STATE", state, inputs = inputs)
+    
+def get_last_poll_state(room_id):
+    poll_state_res = ddb.get_db_record(room_id, "POLL_STATE")
+    state = poll_state_res.get("pvalue", "UNKNOWN")
+    inputs = poll_state_res.get("inputs", {})
+    flask_app.logger.debug("Last poll state in space {}: {}, {}".format(room_id, state, inputs))
+    
+    return state, inputs
         
 @task
 def request_poll_end(room_id, inputs):
@@ -244,21 +263,33 @@ def request_poll_end(room_id, inputs):
     form_id = inputs.get("form_id")
     flask_app.logger.debug("ready for poll \"{}\" form finish {}".format(subject, form_id))
     time.sleep(delay)
+    flask_app.logger.debug("ending poll \"{}\" {}".format(subject, form_id))
     fsm_handle_event(room_id, "ev_end_poll", inputs)
         
 def act_end_poll(room_id, event_name, args_dict):
+    flask_app.logger.debug("end poll args: {}".format(args_dict))
     init_globals() # make sure ddb is available
     
-    subject = args_dict.get("poll_subject")
-    form_id = args_dict.get("form_id")
-    flask_app.logger.debug("deleting poll \"{}\" form {}".format(subject, form_id))
-    try:
-        webex_api.messages.delete(form_id)
+    poll_state, inputs = get_last_poll_state(room_id)
+    subject = inputs.get("poll_subject")
+    form_id = inputs.get("form_id")
+    args_id = args_dict.get("form_id", None)
+    if args_id and args_id != form_id:
+        flask_app.logger.info("running form id and ending form id do not match, no action {} != {}". format(args_id, form_id))
+        return
+    if poll_state == "RUNNING":
+        flask_app.logger.debug("deleting poll \"{}\" form {}".format(subject, form_id))
+        try:
+            webex_api.messages.delete(form_id)
 
-        publish_poll_results(room_id, form_id, subject)
+            publish_poll_results(room_id, form_id, subject)
 
-    except ApiError as e:
-        flask_app.logger.error("message {} delete failed: {}.".format(form_id, e))
+        except ApiError as e:
+            flask_app.logger.error("message {} delete failed: {}.".format(form_id, e))
+        
+        save_last_poll_state(room_id, "ENDED", args_dict)
+    else:
+        flask_app.logger.debug("poll \"{}\" - {} not running (state: {})".format(subject, form_id, poll_state))
         
 def publish_poll_results(room_id, form_id, subject):
     flask_app.logger.debug("publishing poll \"{}\" results, form id: {}".format(subject, form_id))
@@ -363,7 +394,7 @@ MEETING_FSM = [
 # current_state   event     action    target_state
 [None, "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["IDLE", "ev_added_to_space", act_added_to_space, "WELCOME"],
-["any_state", "ev_added_to_space", act_added_to_space, "same_state"],
+["any_state", "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["WELCOME", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["MEETING_INACTIVE", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["MEETING_ACTIVE", "ev_presence", act_presence, "same_state"],
@@ -373,6 +404,8 @@ MEETING_FSM = [
 ["MEETING_ACTIVE", "ev_start_poll", act_start_poll, "POLL_RUNNING"],
 ["POLL_RUNNING", "ev_poll_data", act_poll_data, "same_state"],
 ["POLL_RUNNING", "ev_end_poll", act_end_poll, "MEETING_ACTIVE"],
+["POLL_RUNNING", "ev_force_end_poll", act_end_poll, "same_state"],
+["any_state", "ev_removed_from_space", act_removed_from_space, "REMOVED"]
 ]
 
 def create_timestamp():
@@ -583,6 +616,7 @@ def handle_webhook_event(webhook):
             elif webhook["event"] == "deleted":
                 flask_app.logger.info("I was removed from a Space")
                 action_list.append("bot removed from a Space")
+                fsm_handle_event(webhook["data"]["roomId"], "ev_removed_from_space")
             else:
                 flask_app.logger.info("unhandled membership event '{}'".format(webhook["event"]))
 
@@ -658,6 +692,8 @@ def detect_form_event(form_type, attachment_data):
             event = "ev_presence"
         elif button_pressed == "start_poll":
             event = "ev_start_poll"
+        elif button_pressed == "end_poll":
+            event = "ev_force_end_poll"
         elif button_pressed == "end_meeting":
             event = "ev_end_meeting"
     elif form_type == "SUBMIT_POLL_FORM":
