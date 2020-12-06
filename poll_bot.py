@@ -71,27 +71,48 @@ bot_id = None
 bot flow/events
 
 1. BOT added to a Space
-    - send message with a description
-    - send "meeting start" card
+    * 1-1 Space
+        - send message with a instructions to invite to a group Space
+    * group Space
+        - send "meeting start" card
     
 2. "start meeting" clicked
-    - send "I'm present" card
-    - send "open new poll" card
+    * send a card with options:
+        - presence confirmation
+        - start poll
+        - end current poll
+        - end meeting
     
-3. "I'm present" card actions
+3. presence actions
     - "present" clicked - record a user id in the database, info: space_id, meeting_id (new_meeting message id), user_id, timestamp
     - "end meeting" clicked - record all users not present
     
-4. "open new poll" card actions:
+4. "open new poll"  actions:
     - "start poll" clicked - create a "poll" card, send it to the space, after message sent confirmed (received back), start the timer for poll close
-    - "end meeting" clicked - record all users not present
 
 5. "poll" card actions:
     - button clicked - record user's response, if a user is not present (didn't click "present" at start), he's recorded as present for the rest of the meeting
     - poll timer ended - delete the original "poll" card from the space, post "poll results", post poll results CSV file
+    
+6. "end meeting":
+    - send a card with end meeting indication and a button to start a new meeting
+    - send poll summary in XLS format
 """
 
+"""
+Finite state machine (FSM) section
+This part controls the Bot's events
+"""
+@task
 def fsm_handle_event(room_id, event_name, args_dict={}):
+    """act upon FSM event
+    each FSM action function will be called with arguments(room_id, event_name, args_dict)
+    
+    arguments:
+    room_id -- room id to which the state is related
+    event_name -- name of the event
+    args_dict -- dict of additional arguments related to the event
+    """
     flask_app.logger.debug("FSM event {}, roomId: {}".format(event_name, room_id))
     current_state = get_current_state(room_id)
     for fsm_state, fsm_event, fsm_action, fsm_target_state in MEETING_FSM:
@@ -99,6 +120,8 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
             if fsm_target_state == "same_state":
                 fsm_target_state = current_state
             flask_app.logger.debug("FSM transition {} -> {}, event: {}, function: {}".format(current_state, fsm_target_state, event_name, fsm_action.__name__))
+
+            # event state is saved before the action to avoid duplicate events in case the action takes a long time (includes time.sleep())
             save_current_state(room_id, fsm_target_state)
             new_state = fsm_action(room_id, event_name, args_dict)
             if new_state is not None:
@@ -109,6 +132,11 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
         flask_app.logger.debug("Unhandled FSM event \"{}\"".format(event_name))
             
 def get_current_state(room_id):
+    """get current FSM state
+    
+    arguments:
+    room_id -- room id to which the state is related
+    """
     state = None
     state_res = ddb.get_db_record(room_id, "FSM_STATE")
     if state_res:
@@ -117,21 +145,35 @@ def get_current_state(room_id):
     return state
     
 def save_current_state(room_id, state):
+    """save current FSM state
+    
+    arguments:
+    room_id -- room id to which the state is related
+    state -- state value
+    """
     ddb.save_db_record(room_id, "FSM_STATE", state)
     flask_app.logger.debug("FSM save state: {}, roomId".format(state, room_id))
     
 def clear_current_state(room_id):
+    """clear FSM state
+    
+    arguments:
+    room_id -- room id to which the state is related
+    """
     ddb.delete_db_record(room_id, "FSM_STATE")
                 
 def act_added_to_space(room_id, event_name, args_dict):
+    """Bot was added to the Space"""
     attach = [bc.wrap_form(bc.WELCOME_TEMPLATE)]
     form_type = "WELCOME_FORM"
     send_message({"roomId": room_id}, "welcome form", attachments=attach, form_type=form_type)
     
 def act_removed_from_space(room_id, event_name, args_dict):
+    """Bot was removed from the Space"""
     flask_app.logger.debug("removed from space {}".format(room_id))
 
 def act_start_end_meeting(room_id, event_name, args_dict):
+    """Meeting started/ended - sent the proper card"""
     try:
         flask_app.logger.debug("{} meeting args: {}".format(event_name, args_dict))
         
@@ -199,6 +241,11 @@ def act_start_end_meeting(room_id, event_name, args_dict):
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
         
 def get_moderators(room_id):
+    """return a list of Space moredators
+    
+    arguments:
+    room_id -- id of the Space
+    """
     members = webex_api.memberships.list(roomId = room_id)
     moderators = []
     for member in members:
@@ -208,12 +255,22 @@ def get_moderators(room_id):
     return moderators
         
 def clear_meeting_presence(room_id):
+    """clear presence status of all users in the Space
+    
+    arguments:
+    room_id -- id of the Space
+    """
     present_users = get_present_users(room_id)
     flask_app.logger.debug("clear presence status for roomId: {}".format(room_id))
     for user_id in present_users:
         set_presence(room_id, user_id, False)
         
 def get_present_users(room_id):
+    """return list of user ids of users who set their presence in the Space
+    
+    arguments:
+    room_id -- id of the Space
+    """
     present_list = ddb.query_db_record(room_id, "PRESENT")
     present_users = []
     for prs in present_list:
@@ -224,6 +281,7 @@ def get_present_users(room_id):
     return present_users
 
 def act_start_poll(room_id, event_name, args_dict):
+    """start the poll, send the poll card"""
     inputs = args_dict.get("inputs", {})
     subject = inputs.get("poll_subject")
     time_limit = inputs.get("time_limit")
@@ -245,10 +303,12 @@ def act_start_poll(room_id, event_name, args_dict):
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
         
 def save_last_poll_state(room_id, state, inputs):
+    """save poll state in order to be able to handle both automated and manual poll end"""
     flask_app.logger.debug("Saving poll state \"{}\" in space {}, inputs: {}".format(state, room_id, inputs))
     ddb.save_db_record(room_id, "POLL_STATE", state, inputs = inputs)
     
 def get_last_poll_state(room_id):
+    """get the poll state"""
     poll_state_res = ddb.get_db_record(room_id, "POLL_STATE")
     state = poll_state_res.get("pvalue", "UNKNOWN")
     inputs = poll_state_res.get("inputs", {})
@@ -258,6 +318,7 @@ def get_last_poll_state(room_id):
         
 @task
 def request_poll_end(room_id, inputs):
+    """automated poll end"""
     delay = int(inputs.get("time_limit", DEFAULT_POLL_LIMIT))
     subject = inputs.get("poll_subject")
     form_id = inputs.get("form_id")
@@ -267,6 +328,7 @@ def request_poll_end(room_id, inputs):
     fsm_handle_event(room_id, "ev_end_poll", inputs)
         
 def act_end_poll(room_id, event_name, args_dict):
+    """end poll both automatically and manually"""
     flask_app.logger.debug("end poll args: {}".format(args_dict))
     init_globals() # make sure ddb is available
     
@@ -293,6 +355,7 @@ def act_end_poll(room_id, event_name, args_dict):
         flask_app.logger.debug("poll \"{}\" - {} not running (state: {})".format(subject, form_id, poll_state))
         
 def publish_poll_results(room_id, form_id, subject):
+    """send card with poll results, save results to the database"""
     flask_app.logger.debug("publishing poll \"{}\" results, form id: {}".format(subject, form_id))
     poll_results = ddb.query_db_record(form_id, "POLL_DATA")
     yea_res = []
@@ -347,6 +410,7 @@ def publish_poll_results(room_id, form_id, subject):
     
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
     
+    # publish results after each poll?
     if PUBLISH_PART_RESULTS and len(vote_results) > 0:
         my_url = get_my_url()
         if my_url:
@@ -361,6 +425,7 @@ def publish_poll_results(room_id, form_id, subject):
             webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
     
 def create_result_column(result):
+    """create an individual result column for the card"""
     column = []
     for res in result:
         column.append(nested_replace(bc.RESULT_PARTICIPANT_TEMPLATE, "display_name", res))
@@ -376,16 +441,19 @@ def create_result_column(result):
     return column_result
     
 def act_presence(room_id, event_name, args_dict):
+    """presence indication"""
     message_id = args_dict.get("messageId")
     person_id = args_dict.get("personId")
     set_presence(room_id, person_id, True)
     
 def set_presence(room_id, person_id, status):
+    """save user's presence in the Space id (room_id)"""
     status_data = {"status": status}
     ddb.save_db_record(room_id, person_id, "PRESENT", **status_data)
     flask_app.logger.debug("Presence status for user {} set to {}, roomId: {}".format(person_id, status, room_id))    
         
 def act_poll_data(room_id, event_name, args_dict):
+    """poll click received from a user"""
     message_id = args_dict.get("messageId") # webhook["data"]["messageId"]
     person_id = args_dict.get("personId") # webhook["data"]["personId"]
     set_presence(room_id, person_id, True)
