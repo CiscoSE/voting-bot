@@ -107,6 +107,8 @@ This part controls the Bot's events
 def fsm_handle_event(room_id, event_name, args_dict={}):
     """act upon FSM event
     each FSM action function will be called with arguments(room_id, event_name, args_dict)
+    the action function can return a new state, in that case the "target state" from the FSM
+    definition is ignored and the new state is set instead
     
     arguments:
     room_id -- room id to which the state is related
@@ -461,6 +463,8 @@ def act_poll_data(room_id, event_name, args_dict):
             
 MEETING_FSM = [
 # current_state   event     action    target_state
+# "any_state" - execute the event action no matter of the state
+# "same_state" - keep the state the same
 [None, "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["IDLE", "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["any_state", "ev_added_to_space", act_added_to_space, "WELCOME"],
@@ -477,12 +481,22 @@ MEETING_FSM = [
 ]
 
 def create_timestamp():
+    """time stamp in UTC (ISO 8601) format - used as secondary key in some DB operations"""
     return datetime.utcnow().isoformat()[:-3]+'Z'
     
 def parse_timestamp(time_str):
+    """create datetime object from UTC (ISO 8601) string"""
     return datetime.fromisoformat(time_str.replace("Z", "+00:00"))
 
 def nested_replace( structure, original, new):
+    """replace {{original}} wrapped strings with new value
+    use recursion to walk the whole sructure
+    
+    arguments:
+    structure -- input dict / list / string
+    original -- string to search for
+    new -- will replace every occurence of {{original}}
+    """
     if type(structure) == list:
         return [nested_replace( item, original, new) for item in structure]
 
@@ -496,6 +510,7 @@ def nested_replace( structure, original, new):
         return structure
         
 def get_my_url():
+    """workaround to get the full Bot URL in case the application context is not available"""
     my_webhooks = webex_api.webhooks.list(max = 1)
     if my_webhooks:
         for wh in my_webhooks:
@@ -506,11 +521,16 @@ def get_my_url():
         
         return url
 
-def create_webhook(target_url):    
+def create_webhook(target_url):
+    """create a set of webhooks for the Bot
+    webhooks are defined according to the resource_events dict
+    
+    arguments:
+    target_url -- full URL to be set for the webhook
+    """    
     flask_app.logger.debug("Create new webhook to URL: {}".format(target_url))
     
     webhook_name = "Webhook for Bot {}".format(bot_email)
-    event = "created"
     resource_events = {
         "messages": ["created"],
         "memberships": ["created", "deleted"],
