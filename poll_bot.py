@@ -116,6 +116,7 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
     args_dict -- dict of additional arguments related to the event
     """
     flask_app.logger.debug("FSM event {}, roomId: {}".format(event_name, room_id))
+    init_globals()
     current_state = get_current_state(room_id)
     for fsm_state, fsm_event, fsm_action, fsm_target_state in MEETING_FSM:
         if (fsm_state == current_state or fsm_state == "any_state") and fsm_event == event_name:
@@ -332,7 +333,7 @@ def request_poll_end(room_id, inputs):
 def act_end_poll(room_id, event_name, args_dict):
     """end poll both automatically and manually"""
     flask_app.logger.debug("end poll args: {}".format(args_dict))
-    init_globals() # make sure ddb is available
+    # init_globals() # make sure ddb is available
     
     poll_state, inputs = get_last_poll_state(room_id)
     subject = inputs.get("poll_subject")
@@ -674,7 +675,7 @@ Main function which handles the webhook events. It reacts both on messages and b
 Look at the 'msg +=' for workflow explanation
 """
 
-@task
+# @task
 def handle_webhook_event(webhook):
     action_list = []
     if webhook["data"].get("personEmail") != bot_email:
