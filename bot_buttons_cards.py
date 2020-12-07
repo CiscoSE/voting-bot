@@ -1,9 +1,38 @@
+def wrap_form(form):
+    card = EMPTY_CARD
+    card["content"] = form
+    
+    return card
+
+def nested_replace(structure, original, new):
+    """replace {{original}} wrapped strings with new value
+    use recursion to walk the whole sructure
+    
+    arguments:
+    structure -- input dict / list / string
+    original -- string to search for
+    new -- will replace every occurence of {{original}}
+    """
+    if type(structure) == list:
+        return [nested_replace( item, original, new) for item in structure]
+
+    if type(structure) == dict:
+        return {key : nested_replace(value, original, new)
+                     for key, value in structure.items() }
+
+    if type(structure) == str:
+        return structure.replace("{{"+original+"}}", str(new))
+    else:
+        return structure
+        
 EMPTY_CARD = {
     "contentType": "application/vnd.microsoft.card.adaptive",
     "content": None,
 }
 
 DEFAULT_FORM_MSG = "Toto je formulář. Zobrazíte si ho ve webovém klientovi Webex Teams nebo v desktopové aplikaci."
+
+DEFAULT_TIME_LIMIT = "20"
 
 WELCOME_TEMPLATE = {
     "type": "AdaptiveCard",
@@ -159,7 +188,7 @@ START_POLL_BLOCK = [ {
                         }
                     ],
                     "id": "time_limit",
-                    "value": "20"
+                    "value": "{{time_limit}}"
                 }
             ]
         }
@@ -283,7 +312,7 @@ START_MEETING_TEMPLATE = {
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                        "body": START_POLL_BLOCK
+                        "body": nested_replace(START_POLL_BLOCK, "time_limit", DEFAULT_TIME_LIMIT)
                     },
                     "id": "create_poll_card"
                 }
@@ -646,9 +675,3 @@ PARTICIPANT_ITEM_TEMPLATE = {
     "type": "TextBlock",
     "text": "{{display_name}}"
 }
-
-def wrap_form(form):
-    card = EMPTY_CARD
-    card["content"] = form
-    
-    return card

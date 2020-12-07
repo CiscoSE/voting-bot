@@ -217,8 +217,8 @@ def act_start_end_meeting(room_id, event_name, args_dict):
         ddb.save_db_record(room_id, timestamp, meeting_status, **meeting_info)
             
         user_info = webex_api.people.get(args_dict["personId"])
-        form = nested_replace(template, "display_name", user_info.displayName)
-        form = nested_replace(form, "meeting_subject", meeting_info["subject"])
+        form = bc.nested_replace(template, "display_name", user_info.displayName)
+        form = bc.nested_replace(form, "meeting_subject", meeting_info["subject"])
         attach = [bc.wrap_form(form)]
         msg_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type)
         
@@ -287,9 +287,9 @@ def act_start_poll(room_id, event_name, args_dict):
     form_type = "POLL_FORM"
     try:
         user_info = webex_api.people.get(args_dict["personId"])
-        form = nested_replace(bc.POLL_TEMPLATE, "display_name", user_info.displayName)
-        form = nested_replace(form, "poll_subject", subject)
-        form = nested_replace(form, "time_limit", time_limit)
+        form = bc.nested_replace(bc.POLL_TEMPLATE, "display_name", user_info.displayName)
+        form = bc.nested_replace(form, "poll_subject", subject)
+        form = bc.nested_replace(form, "time_limit", time_limit)
         attach = [bc.wrap_form(form)]
         message_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type, form_params=inputs)
         
@@ -333,6 +333,7 @@ def act_end_poll(room_id, event_name, args_dict):
     
     poll_state, inputs = get_last_poll_state(room_id)
     subject = inputs.get("poll_subject")
+    time_limit = inputs.get("time_limit")
     form_id = inputs.get("form_id")
     args_id = args_dict.get("form_id", None)
     if args_id and args_id != form_id:
@@ -344,7 +345,7 @@ def act_end_poll(room_id, event_name, args_dict):
         try:
             webex_api.messages.delete(form_id)
 
-            publish_poll_results(room_id, form_id, subject)
+            publish_poll_results(room_id, form_id, subject, time_limit=time_limit)
 
         except ApiError as e:
             flask_app.logger.error("message {} delete failed: {}.".format(form_id, e))
@@ -353,7 +354,7 @@ def act_end_poll(room_id, event_name, args_dict):
     else:
         flask_app.logger.debug("poll \"{}\" - {} not running (state: {})".format(subject, form_id, poll_state))
         
-def publish_poll_results(room_id, form_id, subject):
+def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_LIMIT):
     """send card with poll results, save results to the database"""
     flask_app.logger.debug("publishing poll \"{}\" results, form id: {}".format(subject, form_id))
     poll_results = ddb.query_db_record(form_id, "POLL_DATA")
@@ -401,12 +402,13 @@ def publish_poll_results(room_id, form_id, subject):
     }
     ddb.save_db_record(room_id, form_id, "RESULTS", **rslt)
         
-    poll_result_attachment = nested_replace(bc.POLL_RESULTS_TEMPLATE, "poll_subject", subject)
-    poll_result_attachment = nested_replace(poll_result_attachment, "yea_count", len(yea_res))
-    poll_result_attachment = nested_replace(poll_result_attachment, "nay_count", len(nay_res))
-    poll_result_attachment = nested_replace(poll_result_attachment, "abstain_count", len(abstain_res))
+    poll_result_attachment = bc.nested_replace(bc.POLL_RESULTS_TEMPLATE, "poll_subject", subject)
+    poll_result_attachment = bc.nested_replace(poll_result_attachment, "yea_count", len(yea_res))
+    poll_result_attachment = bc.nested_replace(poll_result_attachment, "nay_count", len(nay_res))
+    poll_result_attachment = bc.nested_replace(poll_result_attachment, "abstain_count", len(abstain_res))
     poll_result_attachment["body"].append(voter_columns)
-    poll_result_attachment["body"].append(bc.NEXT_POLL_BLOCK) 
+    poll_block = bc.nested_replace(bc.NEXT_POLL_BLOCK, "time_limit", time_limit)
+    poll_result_attachment["body"].append(poll_block)
     poll_result_attachment["body"].append(bc.END_MEETING_BLOCK) 
     
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
@@ -429,7 +431,7 @@ def create_result_column(result):
     """create an individual result column for the card"""
     column = []
     for res in result:
-        column.append(nested_replace(bc.RESULT_PARTICIPANT_TEMPLATE, "display_name", res))
+        column.append(bc.nested_replace(bc.RESULT_PARTICIPANT_TEMPLATE, "display_name", res))
         
     column_result = {
         "type": "Column",
@@ -487,27 +489,6 @@ def parse_timestamp(time_str):
     """create datetime object from UTC (ISO 8601) string"""
     return datetime.fromisoformat(time_str.replace("Z", "+00:00"))
 
-def nested_replace( structure, original, new):
-    """replace {{original}} wrapped strings with new value
-    use recursion to walk the whole sructure
-    
-    arguments:
-    structure -- input dict / list / string
-    original -- string to search for
-    new -- will replace every occurence of {{original}}
-    """
-    if type(structure) == list:
-        return [nested_replace( item, original, new) for item in structure]
-
-    if type(structure) == dict:
-        return {key : nested_replace(value, original, new)
-                     for key, value in structure.items() }
-
-    if type(structure) == str:
-        return structure.replace("{{"+original+"}}", str(new))
-    else:
-        return structure
-        
 def get_my_url():
     """workaround to get the full Bot URL in case the application context is not available"""
     my_webhooks = webex_api.webhooks.list(max = 1)
