@@ -78,6 +78,124 @@ WELCOME_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+START_POLL_BLOCK = [ {
+    "type": "TextBlock",
+    "text": "Hlasování",
+    "weight": "Bolder",
+    "horizontalAlignment": "Center"
+},
+{
+    "type": "ColumnSet",
+    "columns": [
+        {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "Téma:",
+                    "horizontalAlignment": "Right"
+                }
+            ]
+        },
+        {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+                {
+                    "type": "Input.Text",
+                    "placeholder": "Napište téma",
+                    "id": "poll_subject"
+                }
+            ]
+        }
+    ]
+},
+{
+    "type": "ColumnSet",
+    "columns": [
+        {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "Časový limit:",
+                    "horizontalAlignment": "Right"
+                }
+            ]
+        },
+        {
+            "type": "Column",
+            "width": "stretch",
+            "items": [
+                {
+                    "type": "Input.ChoiceSet",
+                    "placeholder": "Placeholder text",
+                    "choices": [
+                        {
+                            "title": "10s",
+                            "value": "10"
+                        },
+                        {
+                            "title": "20s",
+                            "value": "20"
+                        },
+                        {
+                            "title": "30s",
+                            "value": "30"
+                        },
+                        {
+                            "title": "40s",
+                            "value": "40"
+                        },
+                        {
+                            "title": "1 minuta",
+                            "value": "60"
+                        },
+                        {
+                            "title": "2 minuty",
+                            "value": "120"
+                        }
+                    ],
+                    "id": "time_limit",
+                    "value": "20"
+                }
+            ]
+        }
+    ]
+},
+{
+    "type": "ActionSet",
+    "actions": [
+        {
+            "type": "Action.Submit",
+            "title": "Zahájit hlasování",
+            "id": "poll_start",
+            "data": {"action": "start_poll"}
+        }
+    ],
+    "horizontalAlignment": "Right"
+} ]
+
+NEXT_POLL_BLOCK = {
+    "type": "ActionSet",
+    "horizontalAlignment": "Right",
+    "actions": [
+        {
+            "type": "Action.ShowCard",
+            "title": "Další hlasování",
+            "card": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "body": START_POLL_BLOCK
+            },
+            "id": "create_poll_card"
+        }
+    ],
+    "id": "start_poll_set"
+}
+
 START_MEETING_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -134,103 +252,7 @@ START_MEETING_TEMPLATE = {
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                        "body": [
-                            {
-                                "type": "TextBlock",
-                                "text": "Hlasování",
-                                "weight": "Bolder",
-                                "horizontalAlignment": "Center"
-                            },
-                            {
-                                "type": "ColumnSet",
-                                "columns": [
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "TextBlock",
-                                                "text": "Téma:",
-                                                "horizontalAlignment": "Right"
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "Input.Text",
-                                                "placeholder": "Napište téma",
-                                                "id": "poll_subject"
-                                            }
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "ColumnSet",
-                                "columns": [
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "TextBlock",
-                                                "text": "Časový limit:",
-                                                "horizontalAlignment": "Right"
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "Input.ChoiceSet",
-                                                "placeholder": "Placeholder text",
-                                                "choices": [
-                                                    {
-                                                        "title": "20s",
-                                                        "value": "20"
-                                                    },
-                                                    {
-                                                        "title": "30s",
-                                                        "value": "30"
-                                                    },
-                                                    {
-                                                        "title": "40s",
-                                                        "value": "40"
-                                                    },
-                                                    {
-                                                        "title": "1 minuta",
-                                                        "value": "60"
-                                                    },
-                                                    {
-                                                        "title": "2 minuty",
-                                                        "value": "120"
-                                                    }
-                                                ],
-                                                "id": "time_limit",
-                                                "value": "20"
-                                            }
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "ActionSet",
-                                "actions": [
-                                    {
-                                        "type": "Action.Submit",
-                                        "title": "Zahájit hlasování",
-                                        "id": "poll_start",
-                                        "data": {"action": "start_poll"}
-                                    }
-                                ],
-                                "horizontalAlignment": "Right"
-                            }
-                        ]
+                        "body": START_POLL_BLOCK
                     },
                     "id": "create_poll_card"
                 }
@@ -378,12 +400,6 @@ SUBMIT_POLL_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
     "body": [
-        {
-            "type": "TextBlock",
-            "text": "Hlasování",
-            "weight": "Bolder",
-            "horizontalAlignment": "Center"
-        },
         {
             "type": "ColumnSet",
             "columns": [

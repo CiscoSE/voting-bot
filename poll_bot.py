@@ -46,6 +46,7 @@ FORM_DATA_MAP = {
     "START_MEETING_FORM": "START_MEETING_DATA",
     "END_MEETING_FORM": "END_MEETING_DATA",
     "POLL_FORM": "POLL_DATA",
+    "POLL_RESULTS": "START_MEETING_DATA"
 }
 
 # type of form data to be saved in database
@@ -410,6 +411,7 @@ def publish_poll_results(room_id, form_id, subject):
     poll_result_attachment = nested_replace(poll_result_attachment, "nay_count", len(nay_res))
     poll_result_attachment = nested_replace(poll_result_attachment, "abstain_count", len(abstain_res))
     poll_result_attachment["body"].append(voter_columns)
+    poll_result_attachment["body"].append(bc.NEXT_POLL_BLOCK) 
     
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
     
@@ -773,9 +775,9 @@ def handle_webhook_event(webhook):
 def detect_form_event(form_type, attachment_data):
     inputs = attachment_data.get("inputs", {})
     event = "ev_none"
-    if form_type == "WELCOME_FORM" or form_type == "END_MEETING_FORM":
+    if form_type in ["WELCOME_FORM", "END_MEETING_FORM"]:
         event = "ev_start_meeting"
-    elif form_type == "START_MEETING_FORM":
+    elif form_type in ["START_MEETING_FORM", "POLL_RESULTS"]:
         button_pressed = inputs.get("action", None)
         if button_pressed == "present":
             event = "ev_presence"
