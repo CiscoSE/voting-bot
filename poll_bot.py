@@ -62,11 +62,6 @@ thread_executor = concurrent.futures.ThreadPoolExecutor()
 logger = logging.getLogger()
 
 ddb = None
-avatar_url = DEFAULT_AVATAR_URL
-webhook_url = None
-bot_name = None
-bot_email = None
-bot_id = None
 
 """
 bot flow/events
@@ -534,7 +529,6 @@ def create_webhook(target_url):
     """    
     flask_app.logger.debug("Create new webhook to URL: {}".format(target_url))
     
-    webhook_name = "Webhook for Bot {}".format(bot_email)
     resource_events = {
         "messages": ["created"],
         "memberships": ["created", "deleted"],
@@ -558,7 +552,7 @@ def create_webhook(target_url):
         for event in events:
             try:
                 if not flask_app.testing:
-                    webex_api.webhooks.create(name=webhook_name, targetUrl=target_url, resource=resource, event=event)
+                    webex_api.webhooks.create(name="Webhook for event \"{}\" on resource \"{}\"".format(event, resource), targetUrl=target_url, resource=resource, event=event)
                 status = True
                 flask_app.logger.debug("Webhook for {}/{} was successfully created".format(resource, event))
             except ApiError as e:
@@ -576,8 +570,6 @@ Dobrý den, jsem BOT pro řízení hlasování ve Webex Teams Prostoru (Space). 
 
 Přidejte mě do Prostoru, ve kterém chcete hlasovat.
 """
-    if not personal:
-        greeting_msg += " " + group_info(bot_name)
 
     return greeting_msg
 
@@ -586,8 +578,6 @@ def help_me(personal=True):
     greeting_msg = """
 Dummy help.
 """
-    if not personal:
-        greeting_msg += group_info(bot_name)
 
     return greeting_msg
 
@@ -628,13 +618,38 @@ def send_message(destination, markdown, attachments=[], form_type=None, form_par
         res_msg = webex_api.messages.create(**destination, markdown=markdown, attachments=attachments)
         flask_app.logger.debug("Message created: {}".format(res_msg.json_data))
         if len(attachments) > 0 and form_type is not None:
-            save_form_info(bot_id, res_msg.id, form_type, form_params) # sender is the owner
+            save_form_info(get_bot_id(), res_msg.id, form_type, form_params) # sender is the owner
         else:
             flask_app.logger.debug("Not saving, attach len: {}, form type: {}".format(len(attachments), form_type))
             
         return res_msg.id
     except ApiError as e:
         flask_app.logger.error("Message create failed: {}.".format(e))
+        
+def get_bot_id():
+    bot_id = os.getenv("BOT_ID")
+    if bot_id is None:
+        me = get_bot_info()
+        bot_id = me.id
+        
+    # flask_app.logger.debug("Bot id: {}".format(bot_id))
+    return bot_id
+    
+def get_bot_info():
+    try:
+        me = webex_api.people.me()
+        if me.avatar is None:
+            me.avatar = DEFAULT_AVATAR_URL
+            
+        # flask_app.logger.debug("Bot info: {}".format(me))
+        
+        return me
+    except ApiError as e:
+        flask_app.logger.error("Get bot info error, code: {}, {}".format(e.status_code, e.message))
+        
+def get_bot_name():
+    me = get_bot_info()
+    return me.displayName
         
 def init_globals():
     global ddb
@@ -648,28 +663,23 @@ def init_globals():
 1. initialize database table if needed
 2. start event checking thread
 """
-@flask_app.before_request
-def before_request():
-    global bot_email, bot_name, bot_id, avatar_url, ddb
-    
-    try:
-        me = webex_api.people.me()
-        bot_email = me.emails[0]
-        bot_name = me.displayName
-        bot_id = me.id
-        avatar_url = me.avatar
-    except ApiError as e:
-        avatar_url = DEFAULT_AVATAR_URL
-        flask_app.logger.error("Status code: {}, {}".format(e.status_code, e.message))
+@flask_app.before_first_request
+def before_first_request():
+    me = get_bot_info()
+    email = me.emails[0]
 
-    if ("@sparkbot.io" not in bot_email) and ("@webex.bot" not in bot_email):
+    if ("@sparkbot.io" not in email) and ("@webex.bot" not in email):
         flask_app.logger.error("""
 You have provided access token which does not belong to a bot ({}).
 Please review it and make sure it belongs to your bot account.
 Do not worry if you have lost the access token.
 You can always go to https://developer.ciscospark.com/apps.html 
-URL and generate a new access token.""".format(bot_email))
+URL and generate a new access token.""".format(email))
 
+    init_globals()
+    
+@flask_app.before_request
+def before_request():
     init_globals()
     
 """
@@ -681,6 +691,9 @@ Look at the 'msg +=' for workflow explanation
 # @task
 def handle_webhook_event(webhook):
     action_list = []
+    bot_info = get_bot_info()
+    bot_email = bot_info.emails[0]
+    bot_name = bot_info.displayName
     if webhook["data"].get("personEmail") != bot_email:
         flask_app.logger.info(json.dumps(webhook))
         
@@ -692,7 +705,7 @@ def handle_webhook_event(webhook):
         
 # handle Bot's membership events (Bot added/removed from Space or 1-1 communication)
     if webhook["resource"] == "memberships":
-        if webhook["data"]["personId"] == bot_id:
+        if webhook["data"]["personId"] == get_bot_id():
             if webhook["event"] == "created":
                 personal_room = is_room_direct(webhook["data"]["roomId"])
                 if personal_room:
@@ -803,19 +816,19 @@ Bot setup. Used mainly for webhook creation and gathering a dynamic Bot URL.
 def spark_webhook():
     if request.method == "POST":
         webhook = request.get_json(silent=True)
-        
+        flask_app.logger.debug("Webhook received: {}".format(webhook))
         handle_webhook_event(webhook)        
     elif request.method == "GET":
+        bot_info = get_bot_info()
         message = "<center><img src=\"{0}\" alt=\"{1}\" style=\"width:256; height:256;\"</center>" \
-                  "<center><h2><b>Congratulations! Your <i style=\"color:#ff8000;\">{1}</i> bot is up and running.</b></h2></center>".format(avatar_url, bot_name)
+                  "<center><h2><b>Congratulations! Your <i style=\"color:#ff8000;\">{1}</i> bot is up and running.</b></h2></center>".format(bot_info.avatar, bot_info.displayName)
                   
         message += "<center><b>I'm hosted at: <a href=\"{0}\">{0}</a></center>".format(request.url)
-        if webhook_url is None:
-            res = create_webhook(request.url)
-            if res is True:
-                message += "<center><b>New webhook created sucessfully</center>"
-            else:
-                message += "<center><b>Tried to create a new webhook but failed, see application log for details.</center>"
+        res = create_webhook(request.url)
+        if res is True:
+            message += "<center><b>New webhook created sucessfully</center>"
+        else:
+            message += "<center><b>Tried to create a new webhook but failed, see application log for details.</center>"
 
         return message
         
