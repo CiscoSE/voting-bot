@@ -412,6 +412,7 @@ def publish_poll_results(room_id, form_id, subject):
     poll_result_attachment = nested_replace(poll_result_attachment, "abstain_count", len(abstain_res))
     poll_result_attachment["body"].append(voter_columns)
     poll_result_attachment["body"].append(bc.NEXT_POLL_BLOCK) 
+    poll_result_attachment["body"].append(bc.END_MEETING_BLOCK) 
     
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
     

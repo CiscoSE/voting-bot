@@ -196,6 +196,37 @@ NEXT_POLL_BLOCK = {
     "id": "start_poll_set"
 }
 
+END_MEETING_BLOCK = {
+    "type": "ActionSet",
+    "horizontalAlignment": "Right",
+    "actions": [
+        {
+            "type": "Action.ShowCard",
+            "title": "Ukončit schůzi",
+            "card": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "body": [
+                    {
+                        "type": "ActionSet",
+                        "horizontalAlignment": "Right",
+                        "actions": [
+                            {
+                                "type": "Action.Submit",
+                                "title": "Ukončit",
+                                "id": "end_meeting",
+                                "data": {"action": "end_meeting"}
+                            }
+                        ]
+                    }
+                ]
+            },
+            "id": "end_meeting_card"
+        }
+    ],
+    "id": "end_meeting_set"
+}
+
 START_MEETING_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -289,36 +320,7 @@ START_MEETING_TEMPLATE = {
             ],
             "id": "end_poll_set"
         },
-        {
-            "type": "ActionSet",
-            "horizontalAlignment": "Right",
-            "actions": [
-                {
-                    "type": "Action.ShowCard",
-                    "title": "Ukončit schůzi",
-                    "card": {
-                        "type": "AdaptiveCard",
-                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                        "body": [
-                            {
-                                "type": "ActionSet",
-                                "horizontalAlignment": "Right",
-                                "actions": [
-                                    {
-                                        "type": "Action.Submit",
-                                        "title": "Ukončit",
-                                        "id": "end_meeting",
-                                        "data": {"action": "end_meeting"}
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    "id": "end_meeting_card"
-                }
-            ],
-            "id": "end_meeting_set"
-        }
+        END_MEETING_BLOCK
     ],
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
