@@ -390,9 +390,9 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
         "columns": []
     }
 
-    for voters in (yea_res, nay_res, abstain_res):
-        voters.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
-        voter_columns["columns"].append(create_result_column(voters))
+    voter_columns["columns"].append(create_result_column(yea_res, style=bc.YEA_STYLE))
+    voter_columns["columns"].append(create_result_column(nay_res, style=bc.NAY_STYLE))
+    voter_columns["columns"].append(create_result_column(abstain_res, style=bc.ABSTAIN_STYLE))
     vote_results.sort(key=lambda x: x["jmeno"].split(" ")[-1])
     
     rslt = {
@@ -427,8 +427,9 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
             
             webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
     
-def create_result_column(result):
+def create_result_column(result, style = "default"):
     """create an individual result column for the card"""
+    result.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
     column = []
     for res in result:
         column.append(bc.nested_replace(bc.RESULT_PARTICIPANT_TEMPLATE, "display_name", res))
@@ -436,6 +437,7 @@ def create_result_column(result):
     column_result = {
         "type": "Column",
         "width": "stretch",
+        "style": style,
         "items": column
     }
                 

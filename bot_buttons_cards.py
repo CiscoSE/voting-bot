@@ -34,6 +34,10 @@ DEFAULT_FORM_MSG = "Toto je formulář. Zobrazíte si ho ve webovém klientovi W
 
 DEFAULT_TIME_LIMIT = "20"
 
+YEA_STYLE = "good"
+NAY_STYLE = "warning"
+ABSTAIN_STYLE = "emphasis"
+
 WELCOME_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -619,10 +623,12 @@ POLL_RESULTS_TEMPLATE = {
         },
         {
             "type": "ColumnSet",
+            "style": "attention",
             "columns": [
                 {
                     "type": "Column",
                     "width": "stretch",
+                    # "style": YEA_STYLE,
                     "items": [
                         {
                             "type": "TextBlock",
@@ -636,6 +642,7 @@ POLL_RESULTS_TEMPLATE = {
                 {
                     "type": "Column",
                     "width": "stretch",
+                    # "style": NAY_STYLE,
                     "items": [
                         {
                             "type": "TextBlock",
@@ -649,6 +656,7 @@ POLL_RESULTS_TEMPLATE = {
                 {
                     "type": "Column",
                     "width": "stretch",
+                    # "style": ABSTAIN_STYLE,
                     "items": [
                         {
                             "type": "TextBlock",
