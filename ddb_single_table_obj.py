@@ -30,8 +30,8 @@ class DDB_Single_Table():
 
 # allow to work with Float
 # see: https://github.com/boto/boto3/issues/665    
-    @patch("boto3.dynamodb.types.TypeSerializer", new=FloatSerializer)
-    @patch("boto3.dynamodb.types.TypeDeserializer", new=FloatDeserializer)
+    # @patch("boto3.dynamodb.types.TypeSerializer", new=FloatSerializer)
+    # @patch("boto3.dynamodb.types.TypeDeserializer", new=FloatDeserializer)
     def __init__(self, table_name = None, endpoint_url = None):
         if table_name is None:
             table_name = os.getenv("DYNAMODB_TABLE_NAME")

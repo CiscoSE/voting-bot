@@ -18,6 +18,7 @@ webex_api = WebexTeamsAPI()
 from ddb_single_table_obj import DDB_Single_Table
 
 import json, requests
+from requests_toolbelt.multipart.encoder import MultipartEncoder
 from datetime import datetime, timedelta, timezone
 import time
 from flask import Flask, request, redirect, url_for, make_response
@@ -40,6 +41,7 @@ DEFAULT_AVATAR_URL= "http://bit.ly/SparkBot-512x512"
 # identification mapping in DB between form and submitted data
 DEFAULT_POLL_LIMIT = 20
 PUBLISH_PART_RESULTS = False
+XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 FORM_DATA_MAP = {
     "WELCOME_FORM": "END_MEETING_DATA",
@@ -229,12 +231,23 @@ def act_start_end_meeting(room_id, event_name, args_dict):
                 if my_url:
                     now = datetime.now()
                     file_name = now.strftime("%Y_%m_%d_%H_%M_")
-                    
+                    """
                     # res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
                     res_url = my_url + "/lastcsvsummary/{}?filename={}".format(room_id, file_name)
                     flask_app.logger.debug("URL for summary CSV download: {}".format(res_url))
                     
                     webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
+                    """
+                    complete_results, header_list = create_results(results_items)
+                    xls_stream = create_xls_stream(complete_results, header_list)
+                    
+                    msg_data = {
+                        "roomId": room_id,
+                        "parentId": msg_id,
+                        "markdown": "Výsledky ke stažení."
+                    }
+                    
+                    send_file_stream(msg_data, file_name + meeting_name + ".xlsx", XLSX_CONTENT_TYPE, xls_stream)
     
     except ApiError as e:
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
@@ -609,6 +622,23 @@ def send_message(destination, markdown, attachments=[], form_type=None, form_par
     except ApiError as e:
         flask_app.logger.error("Message create failed: {}.".format(e))
         
+def send_file_stream(msg_data, file_name, content_type, file_stream):
+    try:
+        flask_app.logger.debug("Send file {} with data: {}".format(file_name, msg_data))
+        
+        msg_data["files"] = (file_name, file_stream, content_type)
+        
+        multipart_data = MultipartEncoder(msg_data)
+        headers = {'Content-type': multipart_data.content_type}
+        
+        json_data = webex_api.messages._session.post('messages', data=multipart_data, headers=headers)
+        res_msg = webex_api.messages._object_factory('message', json_data)
+        flask_app.logger.debug("Message with file created: {}".format(dict(res_msg.json_data)))
+        
+        return res_msg.id
+    except ApiError as e:
+        flask_app.logger.error("Message create failed: {}.".format(e))
+        
 def get_bot_id():
     bot_id = os.getenv("BOT_ID")
     if bot_id is None:
@@ -851,36 +881,17 @@ def last_csv_summary(room_id):
     """
     
     try:
+        file_name = request.args.get("filename", "export.xlsx")
+    
+        meeting_name, xls_stream = create_xls_result_stream(room_id)
+        
         results_items, meeting_name = get_last_meeting_results(room_id)
         
         if len(results_items) == 0:
             flask_app.logger.debug("empty results")
             return "" # return not found
             
-        results_items.sort(key=lambda x: x["timestamp"])
-            
-        user_list = []
-        subject_list = []
-        for poll_res in results_items:
-            vote_results = poll_res.get("vote_results", [])
-            user_list += get_name_from_results(vote_results)
-            subject_list.append(poll_res["subject"])
-            
-        user_list = list(set(user_list)) # get unique names
-        user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
-        flask_app.logger.debug("got user list: {}".format(user_list))
-        
-        header_list = ["jmeno"] + subject_list
-        complete_results = []
-        for user in user_list:
-            user_vote_list = [user]
-            for poll_res in results_items:
-                vote_results = poll_res.get("vote_results", [])
-                user_vote_list.append(get_vote_for_user(vote_results, user))
-                
-            complete_results.append(user_vote_list)
-            
-        file_name = request.args.get("filename", "export")
+        complete_results, header_list = create_results(results_items)
             
         """
         si = io.StringIO()
@@ -889,22 +900,13 @@ def last_csv_summary(room_id):
         cw.writerows(complete_results)
         output = make_response(si.getvalue())
         """
-        bi = io.BytesIO()
-        workbook = xlsxwriter.Workbook(bi)
-        worksheet = workbook.add_worksheet()
-        worksheet.set_column(0, 0, 30)
-        top_row_format = workbook.add_format({'bold': True})
+        
+        xls_stream = create_xls_stream(complete_results, header_list)
 
-        worksheet.write_row('A1', header_list, top_row_format)
-        worksheet.autofilter(0, 1, len(complete_results)+1, len(header_list)-1)
-        for row in range(0, len(complete_results)):
-            worksheet.write_row('A'+str(row+2), complete_results[row])
-        workbook.close()
-
-        output = make_response(bi.getvalue())
+        output = make_response(xls_stream.getvalue())
         
         output.headers["Content-Disposition"] = "attachment; filename={}.xlsx".format(file_name + meeting_name)
-        output.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        output.headers["Content-type"] = XLSX_CONTENT_TYPE
         return output
         
     except Exception as e:
@@ -941,6 +943,47 @@ def get_name_from_results(vote_results):
             name_list.append(name)
             
     return name_list
+    
+def create_results(results_items):
+    results_items.sort(key=lambda x: x["timestamp"])
+        
+    user_list = []
+    subject_list = []
+    for poll_res in results_items:
+        vote_results = poll_res.get("vote_results", [])
+        user_list += get_name_from_results(vote_results)
+        subject_list.append(poll_res["subject"])
+        
+    user_list = list(set(user_list)) # get unique names
+    user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
+    flask_app.logger.debug("got user list: {}".format(user_list))
+    
+    header_list = ["jmeno"] + subject_list
+    complete_results = []
+    for user in user_list:
+        user_vote_list = [user]
+        for poll_res in results_items:
+            vote_results = poll_res.get("vote_results", [])
+            user_vote_list.append(get_vote_for_user(vote_results, user))
+            
+        complete_results.append(user_vote_list)
+        
+    return complete_results, header_list
+    
+def create_xls_stream(complete_results, header_list):
+    bi = io.BytesIO()
+    workbook = xlsxwriter.Workbook(bi)
+    worksheet = workbook.add_worksheet()
+    worksheet.set_column(0, 0, 30)
+    top_row_format = workbook.add_format({'bold': True})
+
+    worksheet.write_row('A1', header_list, top_row_format)
+    worksheet.autofilter(0, 1, len(complete_results)+1, len(header_list)-1)
+    for row in range(0, len(complete_results)):
+        worksheet.write_row('A'+str(row+2), complete_results[row])
+    workbook.close()
+    
+    return bi
     
 def get_vote_for_user(vote_results, user):
     for vote_item in vote_results:
