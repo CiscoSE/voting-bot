@@ -40,7 +40,7 @@ from boto3.dynamodb import types
 DEFAULT_AVATAR_URL= "http://bit.ly/SparkBot-512x512"
 # identification mapping in DB between form and submitted data
 DEFAULT_POLL_LIMIT = 20
-PUBLISH_PART_RESULTS = False
+PUBLISH_PART_RESULTS = True
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 FORM_DATA_MAP = {
@@ -231,13 +231,7 @@ def act_start_end_meeting(room_id, event_name, args_dict):
                 if my_url:
                     now = datetime.now()
                     file_name = now.strftime("%Y_%m_%d_%H_%M_")
-                    """
-                    # res_url = my_url + url_for("last_csv_summary", room_id = room_id, filename = file_name)
-                    res_url = my_url + "/lastcsvsummary/{}?filename={}".format(room_id, file_name)
-                    flask_app.logger.debug("URL for summary CSV download: {}".format(res_url))
-                    
-                    webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
-                    """
+
                     complete_results, header_list = create_results(results_items)
                     xls_stream = create_xls_stream(complete_results, header_list)
                     
@@ -434,11 +428,16 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
             now = datetime.now()
             file_name = now.strftime("%Y_%m_%d_%H_%M_") + result_name
             
-            # res_url = my_url + url_for("csv_results", room_id = room_id, form_id = form_id, filename = file_name)
-            res_url = my_url + "/csvresults/{}/{}?filename={}".format(room_id, form_id, file_name)
-            flask_app.logger.debug("URL for CSV download: {}".format(res_url))
+            complete_results, header_list = create_partial_results(vote_results)
+            xls_stream = create_xls_stream(complete_results, header_list)
+
+            msg_data = {
+                "roomId": room_id,
+                "parentId": msg_id,
+                "markdown": "Výsledky ke stažení."
+            }
             
-            webex_api.messages.create(roomId = room_id, parentId = msg_id, markdown = "Výsledky ke stažení.", files = [res_url])
+            send_file_stream(msg_data, file_name + ".xlsx", XLSX_CONTENT_TYPE, xls_stream)
     
 def create_result_column(result, style = "default"):
     """create an individual result column for the card"""
@@ -847,73 +846,30 @@ def spark_webhook():
         
     flask_app.logger.debug("Webhook handling done.")
     return "OK"
-    
-@flask_app.route("/csvresults/<room_id>/<form_id>", methods=["GET"])
-def csv_results(room_id, form_id):
-    results = ddb.get_db_record(room_id, form_id)
-    if results is None:
-        return ""
-
-    csv_list = results.get("vote_results")
-    if csv_list is None:
-        return ""
         
-    file_name = request.args.get("filename", "export")
+def create_partial_results(results_items):
+    user_list = []
+    for poll_res in results_items:
+        user_list.append(poll_res.get("jmeno", ""))
         
-    keys = csv_list[0].keys()
-    si = io.StringIO()
-    cw = csv.DictWriter(si, keys)
-    cw.writeheader()
-    cw.writerows(csv_list)
-    output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = "attachment; filename={}.csv".format(file_name)
-    output.headers["Content-type"] = "text/csv"
-    return output
+    user_list = list(set(user_list)) # get unique names
+    user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
+    flask_app.logger.info("got user list: {}".format(user_list))
     
-@flask_app.route("/lastcsvsummary/<room_id>", methods=["GET"])
-def last_csv_summary(room_id):
-    """
-    1. get meeting start and end
-    2. get all poll results, sort by date
-    3. get all unique users, sort by last name
-    4. create header with "name, poll_1, poll_2,..."
-    5. walk the results, create a list for each user line, empty string if user was not present
-    """
-    
-    try:
-        file_name = request.args.get("filename", "export.xlsx")
-    
-        meeting_name, xls_stream = create_xls_result_stream(room_id)
-        
-        results_items, meeting_name = get_last_meeting_results(room_id)
-        
-        if len(results_items) == 0:
-            flask_app.logger.debug("empty results")
-            return "" # return not found
+    header_list = ["jmeno", "volba"]
+    complete_results = []
+    for user in user_list:
+        user_vote_list = [user]
+        for poll_res in results_items:
+            if poll_res["jmeno"] == user:
+                user_vote_list.append(poll_res["volba"])
             
-        complete_results, header_list = create_results(results_items)
-            
-        """
-        si = io.StringIO()
-        cw = csv.writer(si)
-        cw.writerow(header_list)
-        cw.writerows(complete_results)
-        output = make_response(si.getvalue())
-        """
+        complete_results.append(user_vote_list)
         
-        xls_stream = create_xls_stream(complete_results, header_list)
+    flask_app.logger.info("Create partial results: {}".format(complete_results))
+        
+    return complete_results, header_list
 
-        output = make_response(xls_stream.getvalue())
-        
-        output.headers["Content-Disposition"] = "attachment; filename={}.xlsx".format(file_name + meeting_name)
-        output.headers["Content-type"] = XLSX_CONTENT_TYPE
-        return output
-        
-    except Exception as e:
-        flask_app.logger.error("Last meeting CSV summary exception: {}".format(e))
-        
-    return ""
-    
 def get_last_meeting_results(room_id):
     now = create_timestamp()
     flask_app.logger.debug("Query results for timestamp {} and room_id {}".format(now, room_id))
