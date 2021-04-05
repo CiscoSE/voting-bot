@@ -639,7 +639,7 @@ def send_file_stream(msg_data, file_name, content_type, file_stream):
         flask_app.logger.error("Message create failed: {}.".format(e))
         
 def get_bot_id():
-    bot_id = os.getenv("BOT_ID")
+    bot_id = os.getenv("BOT_ID", None)
     if bot_id is None:
         me = get_bot_info()
         bot_id = me.id
@@ -854,7 +854,7 @@ def create_partial_results(results_items):
         
     user_list = list(set(user_list)) # get unique names
     user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
-    flask_app.logger.info("got user list: {}".format(user_list))
+    flask_app.logger.debug("got user list: {}".format(user_list))
     
     header_list = ["jmeno", "volba"]
     complete_results = []
@@ -866,7 +866,7 @@ def create_partial_results(results_items):
             
         complete_results.append(user_vote_list)
         
-    flask_app.logger.info("Create partial results: {}".format(complete_results))
+    flask_app.logger.debug("Create partial results: {}".format(complete_results))
         
     return complete_results, header_list
 
