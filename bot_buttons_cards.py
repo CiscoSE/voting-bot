@@ -683,3 +683,207 @@ PARTICIPANT_ITEM_TEMPLATE = {
     "type": "TextBlock",
     "text": "{{display_name}}"
 }
+
+USER_SETTINGS_TEMPLATE = {
+    "type": "AdaptiveCard",
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.0",
+    "body": [
+        {
+            "type": "TextBlock",
+            "text": "Bot Settings",
+            "wrap": True,
+            "weight": "Bolder"
+        },
+        {
+            "type": "TextBlock",
+            "text": "Settings will be applied to any new meeting created by you in any Space. If you want to change the meeting settings later, visit this form and change the settings before the meeting start.",
+            "wrap": True
+        },
+        {
+            "type": "ColumnSet",
+            "columns": [
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "Language",
+                            "wrap": True
+                        }
+                    ]
+                },
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "Input.ChoiceSet",
+                            "choices": [
+                                {
+                                    "title": "English",
+                                    "value": "english"
+                                },
+                                {
+                                    "title": "Czech",
+                                    "value": "czech"
+                                }
+                            ],
+                            "placeholder": "Select language",
+                            "id": "language",
+                            "value": "english"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ColumnSet",
+            "columns": [
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "Publish partial results after each vote",
+                            "wrap": True
+                        }
+                    ]
+                },
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "Input.ChoiceSet",
+                            "choices": [
+                                {
+                                    "title": "Yes",
+                                    "value": "yes"
+                                },
+                                {
+                                    "title": "No",
+                                    "value": "no"
+                                }
+                            ],
+                            "placeholder": "Placeholder text",
+                            "style": "expanded",
+                            "id": "partial_results",
+                            "value": "no"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Action.Submit",
+            "title": "Save"
+        }
+    ]
+}
+
+ROOM_SETTINGS_TEMPLATE = {
+    "type": "AdaptiveCard",
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.0",
+    "body": [
+        {
+            "type": "TextBlock",
+            "text": "Bot Settings",
+            "wrap": True,
+            "weight": "Bolder"
+        },
+        {
+            "type": "TextBlock",
+            "text": "Settings will be applied to any new meeting created in this Space. If you want to change the meeting settings later, visit this form and change the settings before the next meeting start.",
+            "wrap": True
+        },
+        {
+            "type": "ColumnSet",
+            "columns": [
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "Language",
+                            "wrap": True
+                        }
+                    ]
+                },
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "Input.ChoiceSet",
+                            "choices": [
+                                {
+                                    "title": "English",
+                                    "value": "english"
+                                },
+                                {
+                                    "title": "Czech",
+                                    "value": "czech"
+                                }
+                            ],
+                            "placeholder": "Select language",
+                            "id": "language",
+                            "value": "english"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "ColumnSet",
+            "columns": [
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "text": "Publish partial results after each vote",
+                            "wrap": True
+                        }
+                    ]
+                },
+                {
+                    "type": "Column",
+                    "width": "stretch",
+                    "items": [
+                        {
+                            "type": "Input.ChoiceSet",
+                            "choices": [
+                                {
+                                    "title": "Yes",
+                                    "value": "yes"
+                                },
+                                {
+                                    "title": "No",
+                                    "value": "no"
+                                }
+                            ],
+                            "placeholder": "Placeholder text",
+                            "style": "expanded",
+                            "id": "partial_results",
+                            "value": "no"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Action.Submit",
+            "title": "Save"
+        }
+    ]
+}
