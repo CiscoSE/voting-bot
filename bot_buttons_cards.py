@@ -1,3 +1,5 @@
+import localization_strings as ls
+
 def wrap_form(form):
     card = EMPTY_CARD
     card["content"] = form
@@ -25,12 +27,25 @@ def nested_replace(structure, original, new):
     else:
         return structure
         
+def nested_replace_dict(structure, replace_dict):
+    for (key, value) in replace_dict.items():
+        structure = nested_replace(structure, key, value)
+        
+    return structure
+    
+def localize(structure, language, localization_dict):
+    if not language in localization_dict.keys():
+        return structure
+        
+    lang_dict = localization_dict[language]
+    return nested_replace_dict(structure, lang_dict)
+        
 EMPTY_CARD = {
     "contentType": "application/vnd.microsoft.card.adaptive",
     "content": None,
 }
 
-DEFAULT_FORM_MSG = "Toto je formulář. Zobrazíte si ho ve webovém klientovi Webex Teams nebo v desktopové aplikaci."
+DEFAULT_FORM_MSG = "{{loc_default_form_msg}}"
 
 DEFAULT_TIME_LIMIT = "20"
 
@@ -44,14 +59,14 @@ WELCOME_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "Vítá vás bot pro řízení hlasování",
+            "text": "{{loc_bot_welcome_1}}",
             "horizontalAlignment": "Center",
             "weight": "Bolder",
             "size": "Medium"
         },
         {
             "type": "TextBlock",
-            "text": "Zahajte prosím novou schůzi"
+            "text": "{{loc_bot_welcome_2}}"
         },
         {
             "type": "ActionSet",
@@ -59,7 +74,7 @@ WELCOME_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
-                    "title": "Zahájit novou schůzi",
+                    "title": "{{loc_bot_welcome_3}}",
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -73,7 +88,7 @@ WELCOME_TEMPLATE = {
                                         "items": [
                                             {
                                                 "type": "TextBlock",
-                                                "text": "Název schůze:",
+                                                "text": "{{loc_bot_welcome_4}}:",
                                                 "horizontalAlignment": "Right"
                                             }
                                         ]
@@ -84,7 +99,7 @@ WELCOME_TEMPLATE = {
                                         "items": [
                                             {
                                                 "type": "Input.Text",
-                                                "placeholder": "Napište název",
+                                                "placeholder": "{{loc_bot_welcome_5}}",
                                                 "id": "meeting_subject"
                                             }
                                         ]
@@ -97,7 +112,7 @@ WELCOME_TEMPLATE = {
                                 "actions": [
                                     {
                                         "type": "Action.Submit",
-                                        "title": "Zahájit",
+                                        "title": "{{loc_bot_welcome_6}}",
                                         "id": "start_meeting"
                                     }
                                 ]
@@ -113,7 +128,7 @@ WELCOME_TEMPLATE = {
 
 START_POLL_BLOCK = [ {
     "type": "TextBlock",
-    "text": "Hlasování",
+    "text": "{{loc_poll_block_1}}",
     "weight": "Bolder",
     "horizontalAlignment": "Center"
 },
@@ -126,7 +141,7 @@ START_POLL_BLOCK = [ {
             "items": [
                 {
                     "type": "TextBlock",
-                    "text": "Téma:",
+                    "text": "{{loc_poll_block_2}}:",
                     "horizontalAlignment": "Right"
                 }
             ]
@@ -137,7 +152,7 @@ START_POLL_BLOCK = [ {
             "items": [
                 {
                     "type": "Input.Text",
-                    "placeholder": "Napište téma",
+                    "placeholder": "{{loc_poll_block_3}}",
                     "id": "poll_subject"
                 }
             ]
@@ -153,7 +168,7 @@ START_POLL_BLOCK = [ {
             "items": [
                 {
                     "type": "TextBlock",
-                    "text": "Časový limit:",
+                    "text": "{{loc_poll_block_4}}:",
                     "horizontalAlignment": "Right"
                 }
             ]
@@ -183,11 +198,11 @@ START_POLL_BLOCK = [ {
                             "value": "40"
                         },
                         {
-                            "title": "1 minuta",
+                            "title": "1 {{loc_poll_block_5}}",
                             "value": "60"
                         },
                         {
-                            "title": "2 minuty",
+                            "title": "2 {{loc_poll_block_6}}",
                             "value": "120"
                         }
                     ],
@@ -203,7 +218,7 @@ START_POLL_BLOCK = [ {
     "actions": [
         {
             "type": "Action.Submit",
-            "title": "Zahájit hlasování",
+            "title": "{{loc_poll_block_7}}",
             "id": "poll_start",
             "data": {"action": "start_poll"}
         }
@@ -217,7 +232,7 @@ NEXT_POLL_BLOCK = {
     "actions": [
         {
             "type": "Action.ShowCard",
-            "title": "Další hlasování",
+            "title": "{{loc_next_poll_block_1}}",
             "card": {
                 "type": "AdaptiveCard",
                 "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -235,7 +250,7 @@ END_MEETING_BLOCK = {
     "actions": [
         {
             "type": "Action.ShowCard",
-            "title": "Ukončit schůzi",
+            "title": "{{loc_end_meeting_block_1}}",
             "card": {
                 "type": "AdaptiveCard",
                 "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -246,7 +261,7 @@ END_MEETING_BLOCK = {
                         "actions": [
                             {
                                 "type": "Action.Submit",
-                                "title": "Ukončit",
+                                "title": "{{loc_end_meeting_block_2}}",
                                 "id": "end_meeting",
                                 "data": {"action": "end_meeting"}
                             }
@@ -266,30 +281,30 @@ START_MEETING_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "Schůze \"{{meeting_subject}}\" zahájena",
+            "text": "{{loc_start_meeting_1}} \"{{meeting_subject}}\" {{loc_start_meeting_2}}",
             "horizontalAlignment": "Center",
             "weight": "Bolder",
             "size": "Medium"
         },
         {
             "type": "TextBlock",
-            "text": "{{display_name}} zahájil schůzi."
+            "text": "{{display_name}} {{loc_start_meeting_3}}."
         },
         {
             "type": "RichTextBlock",
             "inlines": [
                 {
                     "type": "TextRun",
-                    "text": "Klikněte na tlačítko "
+                    "text": "{{loc_start_meeting_4}} "
                 },
                 {
                     "type": "TextRun",
-                    "text": "Přítomen",
+                    "text": "{{loc_start_meeting_5}}",
                     "weight": "Bolder"
                 },
                 {
                     "type": "TextRun",
-                    "text": ". Jinak bude vaše přítomnost zaznamenána až od chvíle, kdy se aktivně zúčastníte hlasování."
+                    "text": ". {{loc_start_meeting_6}}."
                 }
             ]
         },
@@ -298,7 +313,7 @@ START_MEETING_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.Submit",
-                    "title": "Přítomen",
+                    "title": "{{loc_start_meeting_7}}",
                     "id": "present",
                     "data": {"action": "present"}
                 }
@@ -312,7 +327,7 @@ START_MEETING_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
-                    "title": "Hlasování",
+                    "title": "{{loc_start_meeting_8}}",
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -329,7 +344,7 @@ START_MEETING_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
-                    "title": "Ukončit hlasování",
+                    "title": "{{loc_start_meeting_9}}",
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -340,7 +355,7 @@ START_MEETING_TEMPLATE = {
                                 "actions": [
                                     {
                                         "type": "Action.Submit",
-                                        "title": "Ukončit",
+                                        "title": "{{loc_start_meeting_10}}",
                                         "id": "end_poll",
                                         "data": {"action": "end_poll"}
                                     }
@@ -364,14 +379,14 @@ END_MEETING_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "Schůze ukončena",
+            "text": "{{loc_end_meeting_1}}",
             "horizontalAlignment": "Center",
             "weight": "Bolder",
             "size": "Medium"
         },
         {
             "type": "TextBlock",
-            "text": "{{display_name}} ukončil schůzi."
+            "text": "{{display_name}} {{loc_end_meeting_2}}."
         },
         {
             "type": "ActionSet",
@@ -379,7 +394,7 @@ END_MEETING_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
-                    "title": "Zahájit novou schůzi",
+                    "title": "{{loc_end_meeting_3}}",
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -393,7 +408,7 @@ END_MEETING_TEMPLATE = {
                                         "items": [
                                             {
                                                 "type": "TextBlock",
-                                                "text": "Název schůze:",
+                                                "text": "{{loc_end_meeting_4}}:",
                                                 "horizontalAlignment": "Right"
                                             }
                                         ]
@@ -404,7 +419,7 @@ END_MEETING_TEMPLATE = {
                                         "items": [
                                             {
                                                 "type": "Input.Text",
-                                                "placeholder": "Napište název",
+                                                "placeholder": "{{loc_end_meeting_5}}",
                                                 "id": "meeting_subject"
                                             }
                                         ]
@@ -417,7 +432,7 @@ END_MEETING_TEMPLATE = {
                                 "actions": [
                                     {
                                         "type": "Action.Submit",
-                                        "title": "Zahájit",
+                                        "title": "{{loc_end_meeting_6}}",
                                         "id": "start_meeting"
                                     }
                                 ]
@@ -444,7 +459,7 @@ SUBMIT_POLL_TEMPLATE = {
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": "Téma:",
+                            "text": "{{loc_submit_poll_1}}:",
                             "horizontalAlignment": "Right"
                         }
                     ]
@@ -455,7 +470,7 @@ SUBMIT_POLL_TEMPLATE = {
                     "items": [
                         {
                             "type": "Input.Text",
-                            "placeholder": "Napište téma",
+                            "placeholder": "{{loc_submit_poll_2}}",
                             "id": "poll_subject"
                         }
                     ]
@@ -471,7 +486,7 @@ SUBMIT_POLL_TEMPLATE = {
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": "Časový limit:",
+                            "text": "{{loc_submit_poll_3}}:",
                             "horizontalAlignment": "Right"
                         }
                     ]
@@ -497,11 +512,11 @@ SUBMIT_POLL_TEMPLATE = {
                                     "value": "40"
                                 },
                                 {
-                                    "title": "1 minuta",
+                                    "title": "1 {{loc_submit_poll_4}}",
                                     "value": "60"
                                 },
                                 {
-                                    "title": "2 minuty",
+                                    "title": "2 {{loc_submit_poll_5}}",
                                     "value": "120"
                                 }
                             ],
@@ -517,7 +532,7 @@ SUBMIT_POLL_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.Submit",
-                    "title": "Zahájit hlasování",
+                    "title": "{{loc_submit_poll_6}}",
                     "id": "poll_start"
                 }
             ],
@@ -529,7 +544,7 @@ SUBMIT_POLL_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
-                    "title": "Ukončit schůzi",
+                    "title": "{{loc_submit_poll_7}}",
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -540,7 +555,7 @@ SUBMIT_POLL_TEMPLATE = {
                                 "actions": [
                                     {
                                         "type": "Action.Submit",
-                                        "title": "Ukončit",
+                                        "title": "{{loc_submit_poll_8}}",
                                         "id": "end_meeting"
                                     }
                                 ]
@@ -560,14 +575,14 @@ POLL_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "{{display_name}} zahájil hlasování."
+            "text": "{{display_name}} {{loc_poll_template_1}}."
         },
         {
             "type": "RichTextBlock",
             "inlines": [
                 {
                     "type": "TextRun",
-                    "text": "Téma hlasování: "
+                    "text": "{{loc_poll_template_2}}: "
                 },
                 {
                     "type": "TextRun",
@@ -578,28 +593,28 @@ POLL_TEMPLATE = {
         },
         {
             "type": "TextBlock",
-            "text": "Časový limit: {{time_limit}}s"
+            "text": "{{loc_poll_template_3}}: {{time_limit}}s"
         },
         {
             "type": "ActionSet",
             "actions": [
                 {
                     "type": "Action.Submit",
-                    "title": "Pro",
+                    "title": "{{loc_poll_template_4}}",
                     "id": "yea",
                     "style": "positive",
                     "data": {"vote": "yea"}
                 },
                 {
                     "type": "Action.Submit",
-                    "title": "Proti",
+                    "title": "{{loc_poll_template_5}}",
                     "id": "nay",
                     "style": "destructive",
                     "data": {"vote": "nay"}
                 },
                 {
                     "type": "Action.Submit",
-                    "title": "Zdržuji se",
+                    "title": "{{loc_poll_template_6}}",
                     "id": "abstain",
                     "data": {"vote": "abstain"}
                 }
@@ -617,7 +632,7 @@ POLL_RESULTS_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "{{poll_subject}} - výsledky hlasování",
+            "text": "{{poll_subject}} - {{loc_poll_results_1}}",
             "weight": "Bolder",
             "horizontalAlignment": "Center"
         },
@@ -632,7 +647,7 @@ POLL_RESULTS_TEMPLATE = {
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": "Pro ({{yea_count}})",
+                            "text": "{{loc_poll_results_2}} ({{yea_count}})",
                             "horizontalAlignment": "Left",
                             "weight": "Bolder",
                             "color": "Good"
@@ -646,7 +661,7 @@ POLL_RESULTS_TEMPLATE = {
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": "Proti ({{nay_count}})",
+                            "text": "{{loc_poll_results_3}} ({{nay_count}})",
                             "horizontalAlignment": "Left",
                             "weight": "Bolder",
                             "color": "Warning"
@@ -660,7 +675,7 @@ POLL_RESULTS_TEMPLATE = {
                     "items": [
                         {
                             "type": "TextBlock",
-                            "text": "Zdržel se ({{abstain_count}})",
+                            "text": "{{loc_poll_results_4}} ({{abstain_count}})",
                             "horizontalAlignment": "Left",
                             "weight": "Bolder",
                             "color": "Dark"
@@ -684,6 +699,77 @@ PARTICIPANT_ITEM_TEMPLATE = {
     "text": "{{display_name}}"
 }
 
+SETTINGS_BLOCK = [
+    {
+        "type": "ColumnSet",
+        "columns": [
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "TextBlock",
+                        "text": "{{loc_settings_block_1}}",
+                        "wrap": True
+                    }
+                ]
+            },
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "Input.ChoiceSet",
+                        "choices": ls.lang_list_for_card(),
+                        "placeholder": "{{loc_settings_block_2}}",
+                        "id": "language",
+                        "value": "en_US"
+                    }
+                ]
+            }
+        ]
+    }, 
+    {
+        "type": "ColumnSet",
+        "columns": [
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "TextBlock",
+                        "text": "{{loc_settings_block_3}}",
+                        "wrap": True
+                    }
+                ]
+            },
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "Input.ChoiceSet",
+                        "choices": [
+                            {
+                                "title": "{{loc_settings_block_4}}",
+                                "value": "yes"
+                            },
+                            {
+                                "title": "{{loc_settings_block_5}}",
+                                "value": "no"
+                            }
+                        ],
+                        "placeholder": "",
+                        "style": "expanded",
+                        "id": "partial_results",
+                        "value": "no"
+                    }
+                ]
+            }
+        ]
+    }
+]
+
 USER_SETTINGS_TEMPLATE = {
     "type": "AdaptiveCard",
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -691,97 +777,20 @@ USER_SETTINGS_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "Bot Settings",
+            "text": "{{loc_user_settings_1}}",
             "wrap": True,
             "weight": "Bolder"
         },
         {
             "type": "TextBlock",
-            "text": "Settings will be applied to any new meeting created by you in any Space. If you want to change the meeting settings later, visit this form and change the settings before the meeting start.",
+            "text": "{{loc_user_settings_2}}",
             "wrap": True
-        },
-        {
-            "type": "ColumnSet",
-            "columns": [
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "TextBlock",
-                            "text": "Language",
-                            "wrap": True
-                        }
-                    ]
-                },
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "Input.ChoiceSet",
-                            "choices": [
-                                {
-                                    "title": "English",
-                                    "value": "english"
-                                },
-                                {
-                                    "title": "Czech",
-                                    "value": "czech"
-                                }
-                            ],
-                            "placeholder": "Select language",
-                            "id": "language",
-                            "value": "english"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "ColumnSet",
-            "columns": [
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "TextBlock",
-                            "text": "Publish partial results after each vote",
-                            "wrap": True
-                        }
-                    ]
-                },
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "Input.ChoiceSet",
-                            "choices": [
-                                {
-                                    "title": "Yes",
-                                    "value": "yes"
-                                },
-                                {
-                                    "title": "No",
-                                    "value": "no"
-                                }
-                            ],
-                            "placeholder": "Placeholder text",
-                            "style": "expanded",
-                            "id": "partial_results",
-                            "value": "no"
-                        }
-                    ]
-                }
-            ]
         }
-    ],
+    ] + SETTINGS_BLOCK,
     "actions": [
         {
             "type": "Action.Submit",
-            "title": "Save"
+            "title": "{{loc_user_settings_3}}"
         }
     ]
 }
@@ -793,97 +802,20 @@ ROOM_SETTINGS_TEMPLATE = {
     "body": [
         {
             "type": "TextBlock",
-            "text": "Bot Settings",
+            "text": "{{loc_room_settings_1}}",
             "wrap": True,
             "weight": "Bolder"
         },
         {
             "type": "TextBlock",
-            "text": "Settings will be applied to any new meeting created in this Space. If you want to change the meeting settings later, visit this form and change the settings before the next meeting start.",
+            "text": "{{loc_room_settings_2}}",
             "wrap": True
-        },
-        {
-            "type": "ColumnSet",
-            "columns": [
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "TextBlock",
-                            "text": "Language",
-                            "wrap": True
-                        }
-                    ]
-                },
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "Input.ChoiceSet",
-                            "choices": [
-                                {
-                                    "title": "English",
-                                    "value": "english"
-                                },
-                                {
-                                    "title": "Czech",
-                                    "value": "czech"
-                                }
-                            ],
-                            "placeholder": "Select language",
-                            "id": "language",
-                            "value": "english"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "type": "ColumnSet",
-            "columns": [
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "TextBlock",
-                            "text": "Publish partial results after each vote",
-                            "wrap": True
-                        }
-                    ]
-                },
-                {
-                    "type": "Column",
-                    "width": "stretch",
-                    "items": [
-                        {
-                            "type": "Input.ChoiceSet",
-                            "choices": [
-                                {
-                                    "title": "Yes",
-                                    "value": "yes"
-                                },
-                                {
-                                    "title": "No",
-                                    "value": "no"
-                                }
-                            ],
-                            "placeholder": "Placeholder text",
-                            "style": "expanded",
-                            "id": "partial_results",
-                            "value": "no"
-                        }
-                    ]
-                }
-            ]
         }
-    ],
+    ] + SETTINGS_BLOCK,
     "actions": [
         {
             "type": "Action.Submit",
-            "title": "Save"
+            "title": "{{loc_room_settings_3}}"
         }
     ]
 }
