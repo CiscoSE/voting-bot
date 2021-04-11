@@ -41,7 +41,6 @@ from boto3.dynamodb import types
 DEFAULT_AVATAR_URL= "http://bit.ly/SparkBot-512x512"
 # identification mapping in DB between form and submitted data
 DEFAULT_POLL_LIMIT = 20
-PUBLISH_PART_RESULTS = True
 XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 FORM_DATA_MAP = {
@@ -121,6 +120,7 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
     current_state = get_current_state(room_id)
     
     settings = load_settings(room_id, event_name, args_dict)
+    flask_app.logger.debug("Active settings: {}".format(settings.settings))
     
     for fsm_state, fsm_event, fsm_action, fsm_target_state in MEETING_FSM:
         if (fsm_state == current_state or fsm_state == "any_state") and fsm_event == event_name:
@@ -173,26 +173,26 @@ def load_settings(room_id, event_name, args_dict):
     person_id = args_dict.get("personId")
     room_settings = BotSettings(db = ddb, settings_id = room_id)
     flask_app.logger.debug("Room settings {}stored, value: {}".format("not " if not room_settings.stored else "", room_settings.settings))
-    if not room_settings.stored and person_id is not None:
+    if person_id is not None:
         person_settings = BotSettings(db = ddb, settings_id = person_id)
-        flask_app.logger.debug("Person settings {}stored, value: {}".format("not " if not person_settings.stored else "", person_settings.settings))
+        flask_app.logger.debug("Person {} settings {}stored, value: {}".format(person_id, "not " if not person_settings.stored else "", person_settings.settings))
         if person_settings.stored:
-            room_settings = person_settings
+            room_settings.settings = person_settings.settings
             room_settings.save()
-    flask_app.logger.debug("Active settings: {}".format(room_settings.settings))
-    
+                
     return room_settings
                 
 def act_added_to_space(room_id, event_name, settings, args_dict):
     """Bot was added to the Space"""
     person_id = args_dict["actorId"]
     person_settings = BotSettings(db = ddb, settings_id = person_id)
-    room_settings = False
+    flask_app.logger.debug("Person settings {}stored, value: {}".format("not " if not person_settings.stored else "", person_settings.settings))
+    room_settings_available = False
     if not person_settings.stored: # no active user settings, let's ask in the space
         attach = [bc.wrap_form(bc.localize(bc.ROOM_SETTINGS_TEMPLATE, settings.settings["language"]))]
         form_type = "ROOM_SETTINGS_FORM"
         send_message({"roomId": room_id}, "settings form", attachments=attach, form_type=form_type)
-        room_settings = True
+        room_settings_available = True
 
     if not person_settings.settings["user_1_1"]: # user not yet in 1-1 communcation with the Bot
         attach = [bc.wrap_form(bc.localize(bc.USER_SETTINGS_TEMPLATE, settings.settings["language"]))]
@@ -201,10 +201,10 @@ def act_added_to_space(room_id, event_name, settings, args_dict):
         person_settings.settings = {"user_1_1": True}
         person_settings.save()
         
-    if room_settings:
+    if room_settings_available:
         return "ROOM_SETTINGS"
     else:
-        send_welcome_form(room_id, settings)
+        send_welcome_form(room_id, person_settings)
         
 def act_save_room_settings(room_id, event_name, settings, args_dict):
     inputs = args_dict.get("inputs", {})
@@ -218,9 +218,10 @@ def act_save_room_settings(room_id, event_name, settings, args_dict):
 def act_save_user_settings(room_id, event_name, settings, args_dict):
     person_id = args_dict.get("personId")
     inputs = args_dict.get("inputs", {})
-    settings.settings = inputs
-    flask_app.logger.debug("saving user settings, db: {}, id: {}, person id: {}, data: {}".format(settings._db, settings._settings_id, person_id, settings.settings))
-    settings.save()
+    person_settings = BotSettings(db = ddb, settings_id = person_id)
+    person_settings.settings = inputs
+    flask_app.logger.debug("saving user settings, db: {}, id: {}, person id: {}, data: {}".format(person_settings._db, person_settings._settings_id, person_id, person_settings.settings))
+    person_settings.save()
 
 def send_welcome_form(room_id, settings):
     attach = [bc.wrap_form(bc.localize(bc.WELCOME_TEMPLATE, settings.settings["language"]))]
@@ -480,7 +481,7 @@ def publish_poll_results(room_id, form_id, subject, settings, time_limit=bc.DEFA
     msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(bc.localize(poll_result_attachment, settings.settings["language"]))], form_type="POLL_RESULTS")
     
     # publish results after each poll?
-    if PUBLISH_PART_RESULTS and len(vote_results) > 0:
+    if settings.settings["partial_results"] and len(vote_results) > 0:
         my_url = get_my_url()
         if my_url:
             result_name = unidecode(subject).lower().replace(" ", "_")
