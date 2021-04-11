@@ -8,8 +8,8 @@ ddb = DDB_Single_Table()
 print("initialize DDB object {}".format(ddb))
 
 settings_id = "Y2lzY29zcGFyazovL3VzL1BFT1BMRS82MzFlODQ0Mi02YTU3LTQ1ZTAtYjIyNy1jYWQ1Y2FkMmQ5MWQ"
-TEST_SETTINGS_1 = {"language": "Czech", "partial_results": True, "active_votes": False, "user_1_1": False}
-TEST_SETTINGS_2 = {"language": "English", "partial_results": True, "active_votes": False, "user_1_1": False}
+TEST_SETTINGS_1 = {"language": "cs_CZ", "partial_results": True, "active_votes": False, "user_1_1": False}
+TEST_SETTINGS_2 = {"language": "en_US", "partial_results": True, "active_votes": False, "user_1_1": False}
 
 from settings import BotSettings
 
@@ -29,12 +29,12 @@ class BotTest(TestCase):
         
     def test_set_settings(self):
         stngs = BotSettings()
-        stngs.settings = {"language": "Czech"}
+        stngs.settings = {"language": "cs_CZ"}
         self.assertEqual(stngs.settings, TEST_SETTINGS_1)
     
     def test_db_save_user_settings(self):
         stngs = BotSettings(db = ddb, settings_id = settings_id)
-        stngs.settings = {"language": "Czech"}
+        stngs.settings = {"language": "cs_CZ"}
         stngs.save()
         stngs2 = BotSettings(db = ddb, settings_id = settings_id)
         stngs2.load()

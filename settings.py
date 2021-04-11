@@ -1,7 +1,7 @@
 import logging
 
 DEFAULT_SETTINGS = {
-  "language": "English",
+  "language": "en_US",
   "partial_results": True, # send results after each vote
   "active_votes": False,   # accept only votes by pressed button, if False, non-press counts as "abstantiated"
   "user_1_1": False        # 1-1 space with user already created
