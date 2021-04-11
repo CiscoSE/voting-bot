@@ -16,6 +16,7 @@ from webexteamssdk import WebexTeamsAPI, ApiError, AccessToken
 webex_api = WebexTeamsAPI()
 
 from ddb_single_table_obj import DDB_Single_Table
+from settings import BotSettings
 
 import json, requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -48,7 +49,9 @@ FORM_DATA_MAP = {
     "START_MEETING_FORM": "START_MEETING_DATA",
     "END_MEETING_FORM": "END_MEETING_DATA",
     "POLL_FORM": "POLL_DATA",
-    "POLL_RESULTS": "START_MEETING_DATA"
+    "POLL_RESULTS": "START_MEETING_DATA",
+    "ROOM_SETTINGS_FORM": "ROOM_SETTINGS_DATA",
+    "USER_SETTINGS_FORM": "USER_SETTINGS_DATA"
 }
 
 # type of form data to be saved in database
@@ -104,7 +107,7 @@ This part controls the Bot's events
 @task
 def fsm_handle_event(room_id, event_name, args_dict={}):
     """act upon FSM event
-    each FSM action function will be called with arguments(room_id, event_name, args_dict)
+    each FSM action function will be called with arguments(room_id, event_name, settings, args_dict)
     the action function can return a new state, in that case the "target state" from the FSM
     definition is ignored and the new state is set instead
     
@@ -116,6 +119,9 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
     flask_app.logger.debug("FSM event {}, roomId: {}".format(event_name, room_id))
     init_globals()
     current_state = get_current_state(room_id)
+    
+    settings = load_settings(room_id, event_name, args_dict)
+    
     for fsm_state, fsm_event, fsm_action, fsm_target_state in MEETING_FSM:
         if (fsm_state == current_state or fsm_state == "any_state") and fsm_event == event_name:
             if fsm_target_state == "same_state":
@@ -124,7 +130,7 @@ def fsm_handle_event(room_id, event_name, args_dict={}):
 
             # event state is saved before the action to avoid duplicate events in case the action takes a long time (includes time.sleep())
             save_current_state(room_id, fsm_target_state)
-            new_state = fsm_action(room_id, event_name, args_dict)
+            new_state = fsm_action(room_id, event_name, settings, args_dict)
             if new_state is not None:
                 save_current_state(room_id, new_state)
                 flask_app.logger.debug("FSM transition {} -> {}, event: {}, function: {}".format(current_state, new_state, event_name, fsm_action.__name__))
@@ -162,18 +168,65 @@ def clear_current_state(room_id):
     room_id -- room id to which the state is related
     """
     ddb.delete_db_record(room_id, "FSM_STATE")
+    
+def load_settings(room_id, event_name, args_dict):    
+    person_id = args_dict.get("personId")
+    room_settings = BotSettings(db = ddb, settings_id = room_id)
+    flask_app.logger.debug("Room settings {}stored, value: {}".format("not " if not room_settings.stored else "", room_settings.settings))
+    if not room_settings.stored and person_id is not None:
+        person_settings = BotSettings(db = ddb, settings_id = person_id)
+        flask_app.logger.debug("Person settings {}stored, value: {}".format("not " if not person_settings.stored else "", person_settings.settings))
+        if person_settings.stored:
+            room_settings = person_settings
+    flask_app.logger.debug("Active settings: {}".format(room_settings.settings))
+    
+    return room_settings
                 
-def act_added_to_space(room_id, event_name, args_dict):
+def act_added_to_space(room_id, event_name, settings, args_dict):
     """Bot was added to the Space"""
+    person_id = args_dict["actorId"]
+    person_settings = BotSettings(db = ddb, settings_id = person_id)
+    if not person_settings.settings["user_1_1"]: # user not yet in 1-1 communcation with the Bot
+        attach = [bc.wrap_form(bc.USER_SETTINGS_TEMPLATE)]
+        form_type = "USER_SETTINGS_FORM"
+        send_message({"toPersonId": person_id}, "settings form", attachments=attach, form_type=form_type)
+        person_settings.settings = {"user_1_1": True}
+        person_settings.save()
+        
+    if not person_settings.stored: # no active user settings, let's ask in the space
+        attach = [bc.wrap_form(bc.ROOM_SETTINGS_TEMPLATE)]
+        form_type = "ROOM_SETTINGS_FORM"
+        send_message({"roomId": room_id}, "settings form", attachments=attach, form_type=form_type)
+        
+        return "ROOM_SETTINGS"
+    else:
+        send_welcome_form(room_id)
+        
+def act_save_room_settings(room_id, event_name, settings, args_dict):
+    inputs = args_dict.get("inputs", {})
+    settings.settings = inputs
+    flask_app.logger.debug("saving room settings, db: {}, id: {}, data: {}".format(settings._db, settings._settings_id, settings.settings))
+    settings.save()
+    
+    send_welcome_form(room_id)
+        
+def act_save_user_settings(room_id, event_name, settings, args_dict):
+    person_id = args_dict.get("personId")
+    inputs = args_dict.get("inputs", {})
+    settings.settings = inputs
+    flask_app.logger.debug("saving user settings, db: {}, id: {}, person id: {}, data: {}".format(settings._db, settings._settings_id, person_id, settings.settings))
+    settings.save()
+
+def send_welcome_form(room_id):
     attach = [bc.wrap_form(bc.WELCOME_TEMPLATE)]
     form_type = "WELCOME_FORM"
     send_message({"roomId": room_id}, "welcome form", attachments=attach, form_type=form_type)
     
-def act_removed_from_space(room_id, event_name, args_dict):
+def act_removed_from_space(room_id, event_name, settings, args_dict):
     """Bot was removed from the Space"""
     flask_app.logger.debug("removed from space {}".format(room_id))
 
-def act_start_end_meeting(room_id, event_name, args_dict):
+def act_start_end_meeting(room_id, event_name, settings, args_dict):
     """Meeting started/ended - sent the proper card"""
     try:
         flask_app.logger.debug("{} meeting args: {}".format(event_name, args_dict))
@@ -183,7 +236,6 @@ def act_start_end_meeting(room_id, event_name, args_dict):
         moderators = get_moderators(room_id)
         
         if moderators:
-            person_id = args_dict["personId"]
             if person_id not in moderators:
                 flask_app.logger.debug("{} is not a moderator in the roomId {}, ignorng start/end request".format(person_id, room_id))
                 room_details = webex_api.rooms.get(room_id)
@@ -286,7 +338,7 @@ def get_present_users(room_id):
         
     return present_users
 
-def act_start_poll(room_id, event_name, args_dict):
+def act_start_poll(room_id, event_name, settings, args_dict):
     """start the poll, send the poll card"""
     inputs = args_dict.get("inputs", {})
     subject = inputs.get("poll_subject")
@@ -333,7 +385,7 @@ def request_poll_end(room_id, inputs):
     flask_app.logger.debug("ending poll \"{}\" {}".format(subject, form_id))
     fsm_handle_event(room_id, "ev_end_poll", inputs)
         
-def act_end_poll(room_id, event_name, args_dict):
+def act_end_poll(room_id, event_name, settings, args_dict):
     """end poll both automatically and manually"""
     flask_app.logger.debug("end poll args: {}".format(args_dict))
     # init_globals() # make sure ddb is available
@@ -457,7 +509,7 @@ def create_result_column(result, style = "default"):
         
     return column_result
     
-def act_presence(room_id, event_name, args_dict):
+def act_presence(room_id, event_name, settings, args_dict):
     """presence indication"""
     message_id = args_dict.get("messageId")
     person_id = args_dict.get("personId")
@@ -469,7 +521,7 @@ def set_presence(room_id, person_id, status):
     ddb.save_db_record(room_id, person_id, "PRESENT", **status_data)
     flask_app.logger.debug("Presence status for user {} set to {}, roomId: {}".format(person_id, status, room_id))    
         
-def act_poll_data(room_id, event_name, args_dict):
+def act_poll_data(room_id, event_name, settings, args_dict):
     """poll click received from a user"""
     message_id = args_dict.get("messageId") # webhook["data"]["messageId"]
     person_id = args_dict.get("personId") # webhook["data"]["personId"]
@@ -484,6 +536,7 @@ MEETING_FSM = [
 ["IDLE", "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["any_state", "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["WELCOME", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
+["ROOM_SETTINGS", "ev_room_settings_data", act_save_room_settings, "WELCOME"],
 ["MEETING_INACTIVE", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["MEETING_ACTIVE", "ev_presence", act_presence, "same_state"],
 ["POLL_RUNNING", "ev_presence", act_presence, "same_state"],
@@ -492,7 +545,8 @@ MEETING_FSM = [
 ["MEETING_ACTIVE", "ev_start_poll", act_start_poll, "POLL_RUNNING"],
 ["POLL_RUNNING", "ev_poll_data", act_poll_data, "same_state"],
 ["POLL_RUNNING", "ev_end_poll", act_end_poll, "MEETING_ACTIVE"],
-["any_state", "ev_removed_from_space", act_removed_from_space, "REMOVED"]
+["any_state", "ev_removed_from_space", act_removed_from_space, "REMOVED"],
+["any_state", "ev_user_settings_data", act_save_user_settings, "same_state"]
 ]
 
 def create_timestamp():
@@ -729,7 +783,7 @@ def handle_webhook_event(webhook):
                     fsm_event = "ev_added_to_space"
                     # msg = "Odešle se nápověda a formulář pro zahájení schůze."
                     action_list.append("invited to a group Space")
-                    fsm_handle_event(webhook["data"]["roomId"], "ev_added_to_space")
+                    fsm_handle_event(webhook["data"]["roomId"], "ev_added_to_space", webhook)
             elif webhook["event"] == "deleted":
                 flask_app.logger.info("I was removed from a Space")
                 action_list.append("bot removed from a Space")
@@ -817,6 +871,10 @@ def detect_form_event(form_type, attachment_data):
         pass
     elif form_type == "POLL_FORM":
         event = "ev_poll_data"
+    elif form_type == "ROOM_SETTINGS_FORM":
+        event = "ev_room_settings_data"
+    elif form_type == "USER_SETTINGS_FORM":
+        event = "ev_user_settings_data"
         
     return event
     
