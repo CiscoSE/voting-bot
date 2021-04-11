@@ -186,6 +186,13 @@ def act_added_to_space(room_id, event_name, settings, args_dict):
     """Bot was added to the Space"""
     person_id = args_dict["actorId"]
     person_settings = BotSettings(db = ddb, settings_id = person_id)
+    room_settings = False
+    if not person_settings.stored: # no active user settings, let's ask in the space
+        attach = [bc.wrap_form(bc.ROOM_SETTINGS_TEMPLATE)]
+        form_type = "ROOM_SETTINGS_FORM"
+        send_message({"roomId": room_id}, "settings form", attachments=attach, form_type=form_type)
+        room_settings = True
+
     if not person_settings.settings["user_1_1"]: # user not yet in 1-1 communcation with the Bot
         attach = [bc.wrap_form(bc.USER_SETTINGS_TEMPLATE)]
         form_type = "USER_SETTINGS_FORM"
@@ -193,11 +200,7 @@ def act_added_to_space(room_id, event_name, settings, args_dict):
         person_settings.settings = {"user_1_1": True}
         person_settings.save()
         
-    if not person_settings.stored: # no active user settings, let's ask in the space
-        attach = [bc.wrap_form(bc.ROOM_SETTINGS_TEMPLATE)]
-        form_type = "ROOM_SETTINGS_FORM"
-        send_message({"roomId": room_id}, "settings form", attachments=attach, form_type=form_type)
-        
+    if room_settings:
         return "ROOM_SETTINGS"
     else:
         send_welcome_form(room_id)
