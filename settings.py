@@ -1,16 +1,28 @@
+import logging
+
 DEFAULT_SETTINGS = {
   "language": "English",
   "partial_results": True, # send results after each vote
-  "active_votes": False    # accept only active votes, if False, non-press counts as "abstantiated" 
+  "active_votes": False,   # accept only votes by pressed button, if False, non-press counts as "abstantiated"
+  "user_1_1": False        # 1-1 space with user already created
 }
     
 class BotSettings():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
 
-    def __init__(self, db=None, user_id="DEFAULT", space_id=None):
+    def __init__(self, db=None, settings_id="DEFAULT", auto_save=False):
         self._db = db
-        self._user_id = user_id
-        self._space_id = space_id
+        self._settings_id = settings_id
         self._settings = DEFAULT_SETTINGS.copy()
+        self.stored = False
+        self.auto_save = auto_save
+        
+        self.load()
+            
+    def __del__(self):
+        if self.auto_save:
+            self.save()
         
     @property
     def settings(self):
@@ -19,20 +31,31 @@ class BotSettings():
     @settings.setter
     def settings(self, new_settings):
         for (key, value) in new_settings.items():
+            if str(value).lower() == "yes":
+                value = True
+            elif str(value).lower() == "no":
+                value = False
             self._settings[key] = value
             
     def save(self):
+        self.logger.info("setting save, id: {}, data: {}".format(self._settings_id, self._settings))
         if self._db is None:
             return
             
-        self._db.save_db_record(self._user_id, "SETTINGS", "", **self._settings)
+        self._db.save_db_record(self._settings_id, "SETTINGS", "", **self._settings)
+        self.stored = True
             
     def load(self):
         if self._db is None:
             return
                     
-        settings_data = self._db.get_db_record(self._user_id, "SETTINGS")
+        settings_data = self._db.get_db_record(self._settings_id, "SETTINGS")
+        if settings_data is None:
+            return
+            
         for key in ["pk", "sk", "pvalue"]:
             del(settings_data[key])
                 
         self.settings = settings_data
+        self.logger.info("setting load, id: {}, data: {}".format(self._settings_id, self._settings))
+        self.stored = True
