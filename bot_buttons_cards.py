@@ -33,11 +33,11 @@ def nested_replace_dict(structure, replace_dict):
         
     return structure
     
-def localize(structure, language, localization_dict):
-    if not language in localization_dict.keys():
+def localize(structure, language):
+    if not language in ls.LOCALES.keys():
         return structure
         
-    lang_dict = localization_dict[language]
+    lang_dict = ls.LOCALES[language]
     return nested_replace_dict(structure, lang_dict)
         
 EMPTY_CARD = {
@@ -126,6 +126,33 @@ WELCOME_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+TIME_LIMITS = [
+    {
+        "title": "10s",
+        "value": "10"
+    },
+    {
+        "title": "20s",
+        "value": "20"
+    },
+    {
+        "title": "30s",
+        "value": "30"
+    },
+    {
+        "title": "40s",
+        "value": "40"
+    },
+    {
+        "title": "1 {{loc_poll_block_5}}",
+        "value": "60"
+    },
+    {
+        "title": "2 {{loc_poll_block_6}}",
+        "value": "120"
+    }
+]
+
 START_POLL_BLOCK = [ {
     "type": "TextBlock",
     "text": "{{loc_poll_block_1}}",
@@ -180,32 +207,7 @@ START_POLL_BLOCK = [ {
                 {
                     "type": "Input.ChoiceSet",
                     "placeholder": "Placeholder text",
-                    "choices": [
-                        {
-                            "title": "10s",
-                            "value": "10"
-                        },
-                        {
-                            "title": "20s",
-                            "value": "20"
-                        },
-                        {
-                            "title": "30s",
-                            "value": "30"
-                        },
-                        {
-                            "title": "40s",
-                            "value": "40"
-                        },
-                        {
-                            "title": "1 {{loc_poll_block_5}}",
-                            "value": "60"
-                        },
-                        {
-                            "title": "2 {{loc_poll_block_6}}",
-                            "value": "120"
-                        }
-                    ],
+                    "choices": TIME_LIMITS,
                     "id": "time_limit",
                     "value": "{{time_limit}}"
                 }
@@ -304,7 +306,7 @@ START_MEETING_TEMPLATE = {
                 },
                 {
                     "type": "TextRun",
-                    "text": ". {{loc_start_meeting_6}}."
+                    "text": " {{loc_start_meeting_6}}."
                 }
             ]
         },
@@ -498,28 +500,7 @@ SUBMIT_POLL_TEMPLATE = {
                         {
                             "type": "Input.ChoiceSet",
                             "placeholder": "Placeholder text",
-                            "choices": [
-                                {
-                                    "title": "20s",
-                                    "value": "20"
-                                },
-                                {
-                                    "title": "30s",
-                                    "value": "30"
-                                },
-                                {
-                                    "title": "40s",
-                                    "value": "40"
-                                },
-                                {
-                                    "title": "1 {{loc_submit_poll_4}}",
-                                    "value": "60"
-                                },
-                                {
-                                    "title": "2 {{loc_submit_poll_5}}",
-                                    "value": "120"
-                                }
-                            ],
+                            "choices": TIME_LIMITS,
                             "id": "time_limit",
                             "value": "20"
                         }
@@ -532,7 +513,7 @@ SUBMIT_POLL_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.Submit",
-                    "title": "{{loc_submit_poll_6}}",
+                    "title": "{{loc_submit_poll_4}}",
                     "id": "poll_start"
                 }
             ],
@@ -544,7 +525,7 @@ SUBMIT_POLL_TEMPLATE = {
             "actions": [
                 {
                     "type": "Action.ShowCard",
-                    "title": "{{loc_submit_poll_7}}",
+                    "title": "{{loc_submit_poll_5}}",
                     "card": {
                         "type": "AdaptiveCard",
                         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -555,7 +536,7 @@ SUBMIT_POLL_TEMPLATE = {
                                 "actions": [
                                     {
                                         "type": "Action.Submit",
-                                        "title": "{{loc_submit_poll_8}}",
+                                        "title": "{{loc_submit_poll_6}}",
                                         "id": "end_meeting"
                                     }
                                 ]
