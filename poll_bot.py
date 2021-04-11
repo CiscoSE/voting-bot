@@ -178,6 +178,7 @@ def load_settings(room_id, event_name, args_dict):
         flask_app.logger.debug("Person settings {}stored, value: {}".format("not " if not person_settings.stored else "", person_settings.settings))
         if person_settings.stored:
             room_settings = person_settings
+            room_settings.save()
     flask_app.logger.debug("Active settings: {}".format(room_settings.settings))
     
     return room_settings
@@ -188,13 +189,13 @@ def act_added_to_space(room_id, event_name, settings, args_dict):
     person_settings = BotSettings(db = ddb, settings_id = person_id)
     room_settings = False
     if not person_settings.stored: # no active user settings, let's ask in the space
-        attach = [bc.wrap_form(bc.ROOM_SETTINGS_TEMPLATE)]
+        attach = [bc.wrap_form(bc.localize(bc.ROOM_SETTINGS_TEMPLATE, settings.settings["language"]))]
         form_type = "ROOM_SETTINGS_FORM"
         send_message({"roomId": room_id}, "settings form", attachments=attach, form_type=form_type)
         room_settings = True
 
     if not person_settings.settings["user_1_1"]: # user not yet in 1-1 communcation with the Bot
-        attach = [bc.wrap_form(bc.USER_SETTINGS_TEMPLATE)]
+        attach = [bc.wrap_form(bc.localize(bc.USER_SETTINGS_TEMPLATE, settings.settings["language"]))]
         form_type = "USER_SETTINGS_FORM"
         send_message({"toPersonId": person_id}, "settings form", attachments=attach, form_type=form_type)
         person_settings.settings = {"user_1_1": True}
@@ -203,15 +204,16 @@ def act_added_to_space(room_id, event_name, settings, args_dict):
     if room_settings:
         return "ROOM_SETTINGS"
     else:
-        send_welcome_form(room_id)
+        send_welcome_form(room_id, settings)
         
 def act_save_room_settings(room_id, event_name, settings, args_dict):
     inputs = args_dict.get("inputs", {})
-    settings.settings = inputs
-    flask_app.logger.debug("saving room settings, db: {}, id: {}, data: {}".format(settings._db, settings._settings_id, settings.settings))
-    settings.save()
+    room_settings = BotSettings(db = ddb, settings_id = room_id)
+    room_settings.settings = inputs
+    flask_app.logger.debug("saving room settings, db: {}, id: {}, data: {}".format(room_settings._db, room_settings._settings_id, room_settings.settings))
+    room_settings.save()
     
-    send_welcome_form(room_id)
+    send_welcome_form(room_id, room_settings)
         
 def act_save_user_settings(room_id, event_name, settings, args_dict):
     person_id = args_dict.get("personId")
@@ -220,8 +222,8 @@ def act_save_user_settings(room_id, event_name, settings, args_dict):
     flask_app.logger.debug("saving user settings, db: {}, id: {}, person id: {}, data: {}".format(settings._db, settings._settings_id, person_id, settings.settings))
     settings.save()
 
-def send_welcome_form(room_id):
-    attach = [bc.wrap_form(bc.WELCOME_TEMPLATE)]
+def send_welcome_form(room_id, settings):
+    attach = [bc.wrap_form(bc.localize(bc.WELCOME_TEMPLATE, settings.settings["language"]))]
     form_type = "WELCOME_FORM"
     send_message({"roomId": room_id}, "welcome form", attachments=attach, form_type=form_type)
     
@@ -243,12 +245,12 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
                 flask_app.logger.debug("{} is not a moderator in the roomId {}, ignorng start/end request".format(person_id, room_id))
                 room_details = webex_api.rooms.get(room_id)
                 room_name = room_details.title
-                action_name = "ukončit"
+                action_name = bc.localize("{{loc_act_start_end_meeting_1}}", settings.settings["language"])
                 next_state = "MEETING_ACTIVE"
                 if event_name == "ev_start_meeting":
-                    action_name = "zahájit"
+                    action_name = bc.localize("{{loc_act_start_end_meeting_2}}", settings.settings["language"])
                     next_state = "MEETING_INACTIVE"
-                send_message({"toPersonId": person_id}, "V Prostoru **{}** může schůzi {} pouze moderátor. Domluvte se s ním. Kdo je moderátorem je vidět v seznamu členů Prostoru.".format(room_name, action_name))
+                send_message({"toPersonId": person_id}, bc.localize("{{loc_act_start_end_meeting_3}}", settings.settings["language"]).format(room_name, action_name))
                 
                 return next_state
         
@@ -260,11 +262,11 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
         
         timestamp = create_timestamp()
         if event_name == "ev_start_meeting":
-            template = bc.START_MEETING_TEMPLATE
+            template = bc.localize(bc.START_MEETING_TEMPLATE, settings.settings["language"])
             form_type = "START_MEETING_FORM"
             meeting_status = "MEETING_START"
         else:
-            template = bc.END_MEETING_TEMPLATE
+            template = bc.localize(bc.END_MEETING_TEMPLATE, settings.settings["language"])
             form_type = "END_MEETING_FORM"
             meeting_status = "MEETING_END"
             
@@ -276,7 +278,7 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
         user_info = webex_api.people.get(args_dict["personId"])
         form = bc.nested_replace(template, "display_name", user_info.displayName)
         form = bc.nested_replace(form, "meeting_subject", meeting_info["subject"])
-        attach = [bc.wrap_form(form)]
+        attach = [bc.wrap_form(bc.localize(form, settings.settings["language"]))]
         msg_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type)
         
         if event_name == "ev_end_meeting":
@@ -287,13 +289,13 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
                     now = datetime.now()
                     file_name = now.strftime("%Y_%m_%d_%H_%M_")
 
-                    complete_results, header_list = create_results(results_items)
+                    complete_results, header_list = create_results(results_items, settings)
                     xls_stream = create_xls_stream(complete_results, header_list)
                     
                     msg_data = {
                         "roomId": room_id,
                         "parentId": msg_id,
-                        "markdown": "Výsledky ke stažení."
+                        "markdown": bc.localize("{{loc_act_start_end_meeting_4}}", settings.settings["language"])
                     }
                     
                     send_file_stream(msg_data, file_name + meeting_name + ".xlsx", XLSX_CONTENT_TYPE, xls_stream)
@@ -302,7 +304,7 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
         flask_app.logger.error("{} meeting form create failed: {}.".format(event_name, e))
         
 def get_moderators(room_id):
-    """return a list of Space moredators
+    """return a list of Space moderators
     
     arguments:
     room_id -- id of the Space
@@ -352,7 +354,7 @@ def act_start_poll(room_id, event_name, settings, args_dict):
         form = bc.nested_replace(bc.POLL_TEMPLATE, "display_name", user_info.displayName)
         form = bc.nested_replace(form, "poll_subject", subject)
         form = bc.nested_replace(form, "time_limit", time_limit)
-        attach = [bc.wrap_form(form)]
+        attach = [bc.wrap_form(bc.localize(form, settings.settings["language"]))]
         message_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type, form_params=inputs)
         
         inputs["form_id"] = message_id
@@ -407,7 +409,7 @@ def act_end_poll(room_id, event_name, settings, args_dict):
         try:
             webex_api.messages.delete(form_id)
 
-            publish_poll_results(room_id, form_id, subject, time_limit=time_limit)
+            publish_poll_results(room_id, form_id, subject, settings, time_limit=time_limit)
 
         except ApiError as e:
             flask_app.logger.error("message {} delete failed: {}.".format(form_id, e))
@@ -416,7 +418,7 @@ def act_end_poll(room_id, event_name, settings, args_dict):
     else:
         flask_app.logger.debug("poll \"{}\" - {} not running (state: {})".format(subject, form_id, poll_state))
         
-def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_LIMIT):
+def publish_poll_results(room_id, form_id, subject, settings, time_limit=bc.DEFAULT_TIME_LIMIT):
     """send card with poll results, save results to the database"""
     flask_app.logger.debug("publishing poll \"{}\" results, form id: {}".format(subject, form_id))
     poll_results = ddb.query_db_record(form_id, "POLL_DATA")
@@ -425,6 +427,8 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
     abstain_res = []
     active_users = []
     vote_results = []
+    name_key = bc.localize("{{loc_publish_poll_results_1}}", settings.settings["language"])
+    choice_key = bc.localize("{{loc_publish_poll_results_6}}", settings.settings["language"])
     for res in poll_results:
         vote = res.get("vote")
         voter_id = res["sk"]
@@ -432,20 +436,20 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
         voter_data = webex_api.people.get(voter_id)
         if vote == "yea":
             yea_res.append(voter_data.displayName)
-            vote_results.append({"jmeno": voter_data.displayName, "volba": "pro"})
+            vote_results.append({name_key: voter_data.displayName, choice_key: bc.localize("{{loc_publish_poll_results_2}}", settings.settings["language"])})
         elif vote == "nay":
             nay_res.append(voter_data.displayName)
-            vote_results.append({"jmeno": voter_data.displayName, "volba": "proti"})
+            vote_results.append({name_key: voter_data.displayName, choice_key: bc.localize("{{loc_publish_poll_results_3}}", settings.settings["language"])})
         elif vote == "abstain":
             abstain_res.append(voter_data.displayName)
-            vote_results.append({"jmeno": voter_data.displayName, "volba": "zdrzel se"})
+            vote_results.append({name_key: voter_data.displayName, choice_key: bc.localize("{{loc_publish_poll_results_4}}", settings.settings["language"])})
             
     present_users = get_present_users(room_id)
     passive_users = list(set(present_users).difference(set(active_users)))
     for user_id in passive_users:
         voter_data = webex_api.people.get(user_id)
         abstain_res.append(voter_data.displayName)
-        vote_results.append({"jmeno": voter_data.displayName, "volba": "zdrzel se"})
+        vote_results.append({name_key: voter_data.displayName, choice_key: bc.localize("{{loc_publish_poll_results_4}}", settings.settings["language"])})
         
     voter_columns = {
         "type": "ColumnSet",
@@ -455,7 +459,7 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
     voter_columns["columns"].append(create_result_column(yea_res, style=bc.YEA_STYLE))
     voter_columns["columns"].append(create_result_column(nay_res, style=bc.NAY_STYLE))
     voter_columns["columns"].append(create_result_column(abstain_res, style=bc.ABSTAIN_STYLE))
-    vote_results.sort(key=lambda x: x["jmeno"].split(" ")[-1])
+    vote_results.sort(key=lambda x: x[name_key].split(" ")[-1])
     
     rslt = {
         "vote_results": vote_results,
@@ -471,9 +475,9 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
     poll_result_attachment["body"].append(voter_columns)
     poll_block = bc.nested_replace(bc.NEXT_POLL_BLOCK, "time_limit", time_limit)
     poll_result_attachment["body"].append(poll_block)
-    poll_result_attachment["body"].append(bc.END_MEETING_BLOCK) 
+    poll_result_attachment["body"].append(bc.END_MEETING_BLOCK)
     
-    msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(poll_result_attachment)], form_type="POLL_RESULTS")
+    msg_id = send_message({"roomId": room_id}, "{} poll results".format(subject), attachments=[bc.wrap_form(bc.localize(poll_result_attachment, settings.settings["language"]))], form_type="POLL_RESULTS")
     
     # publish results after each poll?
     if PUBLISH_PART_RESULTS and len(vote_results) > 0:
@@ -483,13 +487,13 @@ def publish_poll_results(room_id, form_id, subject, time_limit=bc.DEFAULT_TIME_L
             now = datetime.now()
             file_name = now.strftime("%Y_%m_%d_%H_%M_") + result_name
             
-            complete_results, header_list = create_partial_results(vote_results)
+            complete_results, header_list = create_partial_results(vote_results, settings)
             xls_stream = create_xls_stream(complete_results, header_list)
 
             msg_data = {
                 "roomId": room_id,
                 "parentId": msg_id,
-                "markdown": "Výsledky ke stažení."
+                "markdown": bc.localize("{{loc_publish_poll_results_5}}", settings.settings["language"])
             }
             
             send_file_stream(msg_data, file_name + ".xlsx", XLSX_CONTENT_TYPE, xls_stream)
@@ -908,22 +912,24 @@ def spark_webhook():
     flask_app.logger.debug("Webhook handling done.")
     return "OK"
         
-def create_partial_results(results_items):
+def create_partial_results(results_items, settings):
     user_list = []
+    name_key = bc.localize("{{loc_publish_poll_results_1}}", settings.settings["language"])
+    choice_key = bc.localize("{{loc_publish_poll_results_6}}", settings.settings["language"])
     for poll_res in results_items:
-        user_list.append(poll_res.get("jmeno", ""))
+        user_list.append(poll_res.get(name_key, ""))
         
     user_list = list(set(user_list)) # get unique names
     user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
     flask_app.logger.debug("got user list: {}".format(user_list))
     
-    header_list = ["jmeno", "volba"]
+    header_list = [name_key, choice_key]
     complete_results = []
     for user in user_list:
         user_vote_list = [user]
         for poll_res in results_items:
-            if poll_res["jmeno"] == user:
-                user_vote_list.append(poll_res["volba"])
+            if poll_res[name_key] == user:
+                user_vote_list.append(poll_res[choice_key])
             
         complete_results.append(user_vote_list)
         
@@ -952,36 +958,39 @@ def get_last_meeting_results(room_id):
     
     return results_items, meeting_name
             
-def get_name_from_results(vote_results):
+def get_name_from_results(vote_results, name_key):
     name_list = []
     for vote in vote_results:
-        name = vote.get("jmeno")
+        name = vote.get(name_key)
         if name:
             name_list.append(name)
             
     return name_list
     
-def create_results(results_items):
+def create_results(results_items, settings):
+    name_key = bc.localize("{{loc_publish_poll_results_1}}", settings.settings["language"])
+    choice_key = bc.localize("{{loc_publish_poll_results_6}}", settings.settings["language"])
+
     results_items.sort(key=lambda x: x["timestamp"])
         
     user_list = []
     subject_list = []
     for poll_res in results_items:
         vote_results = poll_res.get("vote_results", [])
-        user_list += get_name_from_results(vote_results)
+        user_list += get_name_from_results(vote_results, name_key)
         subject_list.append(poll_res["subject"])
         
     user_list = list(set(user_list)) # get unique names
     user_list.sort(key=lambda x: x.split(" ")[-1]) # sort by last name
     flask_app.logger.debug("got user list: {}".format(user_list))
     
-    header_list = ["jmeno"] + subject_list
+    header_list = [name_key] + subject_list
     complete_results = []
     for user in user_list:
         user_vote_list = [user]
         for poll_res in results_items:
             vote_results = poll_res.get("vote_results", [])
-            user_vote_list.append(get_vote_for_user(vote_results, user))
+            user_vote_list.append(get_vote_for_user(vote_results, user, name_key, choice_key))
             
         complete_results.append(user_vote_list)
         
@@ -1002,10 +1011,10 @@ def create_xls_stream(complete_results, header_list):
     
     return bi
     
-def get_vote_for_user(vote_results, user):
+def get_vote_for_user(vote_results, user, name_key, choice_key):
     for vote_item in vote_results:
-        if vote_item["jmeno"] == user:
-            return vote_item["volba"]
+        if vote_item[name_key] == user:
+            return vote_item[choice_key]
             
     return ""
     
