@@ -11,15 +11,15 @@ TEST_SETTINGS_2 = {"language": "English", "partial_results": True, "active_votes
 
 TEST_DICT_1 = {"a": "test {{test_1}}", "b": [{"c": "{{test_1}}"}, "{{test_1}}"]}
 TEST_RES_1 = {"a": "test aaa", "b": [{"c": "aaa"}, "aaa"]}
-TEST_DICT_2 = {"a": "test {{test_1}}", "b": [{"c": "{{test_2}}"}, "{{test_3}}"]}
-TEST_REPLACE_2 = {"test_1": "aaa", "test_2": "bbb", "test_3": "ccc"}
-TEST_RES_2 = {"a": "test aaa", "b": [{"c": "bbb"}, "ccc"]}
+TEST_DICT_2 = {"a": "test {{loc_poll_block_5}}", "b": [{"c": "{{loc_poll_block_6}}"}, "{{loc_poll_results_3}}"]}
+TEST_REPLACE_2 = {"loc_poll_block_5": "minuta", "loc_poll_block_6": "minuty", "loc_poll_results_3": "Proti"}
+TEST_RES_2 = {"a": "test minuta", "b": [{"c": "minuty"}, "Proti"]}
 TEST_REPLACE_LANG = {
-    "english": {"test_1": "aaa", "test_2": "bbb", "test_3": "ccc"},
-    "czech": {"test_1": "xxx", "test_2": "yyy", "test_3": "zzz"}
+    "en_US": {"test_1": "minute", "test_2": "minutes", "test_3": "Nay"},
+    "cs_CZ": {"test_1": "minuta", "test_2": "minuty", "test_3": "Proti"}
 }
-TEST_RES_3_EN = {"a": "test aaa", "b": [{"c": "bbb"}, "ccc"]}
-TEST_RES_3_CZ = {"a": "test xxx", "b": [{"c": "yyy"}, "zzz"]}
+TEST_RES_3_EN = {"a": "test minute", "b": [{"c": "minutes"}, "Nay"]}
+TEST_RES_3_CZ = {"a": "test minuta", "b": [{"c": "minuty"}, "Proti"]}
 
 CARD_LIST_TEST_1 = [
     {
@@ -31,6 +31,9 @@ CARD_LIST_TEST_1 = [
         "value": "en_US"
     }
 ]
+
+TEST_STRING_1 = "{{loc_poll_block_5}} {} {{loc_poll_block_6}}"
+TEST_RES_4 = "minuta {} minuty"
 
 from settings import BotSettings
 
@@ -56,14 +59,19 @@ class ButtonsCardsTest(TestCase):
                     
     def test_nested_localize(self):
         stngs = BotSettings()
-        res_3 = bc.localize(TEST_DICT_2.copy(), "english", TEST_REPLACE_LANG)
+        res_3 = bc.localize(TEST_DICT_2.copy(), "en_US")
         self.assertEqual(res_3, TEST_RES_3_EN)
-        res_3 = bc.localize(TEST_DICT_2.copy(), "czech", TEST_REPLACE_LANG)
+        res_3 = bc.localize(TEST_DICT_2.copy(), "cs_CZ")
         self.assertEqual(res_3, TEST_RES_3_CZ)
         
     def test_lang_list(self):
         card_list = ls.lang_list_for_card()
         self.assertEqual(card_list, CARD_LIST_TEST_1)
+        
+    def test_string(self):
+        stngs = BotSettings()
+        res_4 = bc.nested_replace_dict(TEST_STRING_1, TEST_REPLACE_2)
+        self.assertEqual(res_4, TEST_RES_4)
                         
 if __name__ == "__main__":
     unittest.main()
