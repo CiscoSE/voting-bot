@@ -1,10 +1,7 @@
 from unittest import TestCase
 from flask.testing import FlaskClient
-import config_test
 import os
 import json
-
-import wxt_compliance as wxt
 
 class BotTest(TestCase):
     
