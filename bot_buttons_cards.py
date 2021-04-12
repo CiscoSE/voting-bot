@@ -206,7 +206,7 @@ START_POLL_BLOCK = [ {
             "items": [
                 {
                     "type": "Input.ChoiceSet",
-                    "placeholder": "Placeholder text",
+                    "placeholder": "{{loc_poll_block_8}}",
                     "choices": TIME_LIMITS,
                     "id": "time_limit",
                     "value": "{{time_limit}}"
@@ -499,7 +499,7 @@ SUBMIT_POLL_TEMPLATE = {
                     "items": [
                         {
                             "type": "Input.ChoiceSet",
-                            "placeholder": "Placeholder text",
+                            "placeholder": "{{loc_submit_poll_7}}",
                             "choices": TIME_LIMITS,
                             "id": "time_limit",
                             "value": "20"
