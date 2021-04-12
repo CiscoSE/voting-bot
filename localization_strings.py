@@ -1,5 +1,6 @@
 from unidecode import unidecode
 
+# language list which is presented in settings
 LANGUAGES = {
     "cs_CZ": "Čeština",
     "en_US": "English, United States"
@@ -14,6 +15,7 @@ def lang_list_for_card():
     
     return lan_list
 
+# each language has to have it's own constant here
 CS_CZ = {
     "loc_default_form_msg": "Toto je formulář. Zobrazíte si ho v aplikaci nebo webovém klientovi Webex.",
     "loc_bot_welcome_1": "Vítá vás bot pro řízení hlasování",
@@ -164,6 +166,7 @@ EN_US = {
     "loc_publish_poll_results_6": "vote"
 }
 
+# add the previously defined language constant to make it available for the Bot
 LOCALES = {
     "cs_CZ": CS_CZ,
     "en_US": EN_US
