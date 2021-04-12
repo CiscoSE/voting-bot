@@ -176,9 +176,9 @@ def load_settings(room_id, event_name, args_dict):
     if person_id is not None:
         person_settings = BotSettings(db = ddb, settings_id = person_id)
         flask_app.logger.debug("Person {} settings {}stored, value: {}".format(person_id, "not " if not person_settings.stored else "", person_settings.settings))
-        # if person_settings.stored:
-            # room_settings.settings = person_settings.settings
-            # room_settings.save()
+        if person_settings.stored and person_settings.settings.get("user_updated", False):
+            room_settings.settings = person_settings.settings
+            room_settings.save()
                 
     return room_settings
                 
@@ -220,6 +220,7 @@ def act_save_user_settings(room_id, event_name, settings, args_dict):
     inputs = args_dict.get("inputs", {})
     person_settings = BotSettings(db = ddb, settings_id = person_id)
     person_settings.settings = inputs
+    person_settings.settings = {"user_updated": True}
     flask_app.logger.debug("saving user settings, db: {}, id: {}, person id: {}, data: {}".format(person_settings._db, person_settings._settings_id, person_id, person_settings.settings))
     person_settings.save()
 
