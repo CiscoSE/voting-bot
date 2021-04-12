@@ -176,9 +176,9 @@ def load_settings(room_id, event_name, args_dict):
     if person_id is not None:
         person_settings = BotSettings(db = ddb, settings_id = person_id)
         flask_app.logger.debug("Person {} settings {}stored, value: {}".format(person_id, "not " if not person_settings.stored else "", person_settings.settings))
-        if person_settings.stored:
-            room_settings.settings = person_settings.settings
-            room_settings.save()
+        # if person_settings.stored:
+            # room_settings.settings = person_settings.settings
+            # room_settings.save()
                 
     return room_settings
                 
