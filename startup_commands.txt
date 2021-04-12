@@ -16,4 +16,4 @@ dotenv -f .env_local run python -m unittest test_settings
 PIP update:
 pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U
 
-pip3 list -o --format columns|  cut -d' ' -f1|xargs -n1 pip install -U
+pip3 list -o --format columns|  cut -d' ' -f1|xargs -n1 pip3 install -U
