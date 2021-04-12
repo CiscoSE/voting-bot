@@ -28,31 +28,48 @@ def nested_replace(structure, original, new):
         return structure
         
 def nested_replace_dict(structure, replace_dict):
+    """replace multiple {{original}} wrapped strings with new value
+    use recursion to walk the whole sructure
+    
+    arguments:
+    structure -- input dict / list / string
+    replace_dict -- dict where key matches the {{original}} and value provides the replacement
+    """
     for (key, value) in replace_dict.items():
         structure = nested_replace(structure, key, value)
         
     return structure
     
 def localize(structure, language):
+    """localize structure using {{original}} wrapped strings with new value
+    use recursion to walk the whole sructure
+    
+    arguments:
+    structure -- input dict / list / string
+    language -- language code which is used to match key in ls.LOCALES dict
+    """
     if not language in ls.LOCALES.keys():
         return structure
         
     lang_dict = ls.LOCALES[language]
     return nested_replace_dict(structure, lang_dict)
-        
+
+# wrapper structure for Webex attachments list        
 EMPTY_CARD = {
     "contentType": "application/vnd.microsoft.card.adaptive",
     "content": None,
 }
 
+# default text message attached to a buttons & cards form
 DEFAULT_FORM_MSG = "{{loc_default_form_msg}}"
 
-DEFAULT_TIME_LIMIT = "20"
+DEFAULT_TIME_LIMIT = "20" # (s) for voting
 
 YEA_STYLE = "good"
 NAY_STYLE = "warning"
 ABSTAIN_STYLE = "emphasis"
 
+# welcome message card
 WELCOME_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -126,6 +143,7 @@ WELCOME_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+# time limits list for voting
 TIME_LIMITS = [
     {
         "title": "10s",
@@ -153,6 +171,7 @@ TIME_LIMITS = [
     }
 ]
 
+# start poll card piece
 START_POLL_BLOCK = [ {
     "type": "TextBlock",
     "text": "{{loc_poll_block_1}}",
@@ -228,6 +247,7 @@ START_POLL_BLOCK = [ {
     "horizontalAlignment": "Right"
 } ]
 
+# next poll card piece
 NEXT_POLL_BLOCK = {
     "type": "ActionSet",
     "horizontalAlignment": "Right",
@@ -246,6 +266,7 @@ NEXT_POLL_BLOCK = {
     "id": "start_poll_set"
 }
 
+# end meeting card piece
 END_MEETING_BLOCK = {
     "type": "ActionSet",
     "horizontalAlignment": "Right",
@@ -277,6 +298,7 @@ END_MEETING_BLOCK = {
     "id": "end_meeting_set"
 }
 
+# start meeting card
 START_MEETING_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -375,6 +397,7 @@ START_MEETING_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+# end meeting card
 END_MEETING_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -448,6 +471,7 @@ END_MEETING_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+# start poll (vote) card
 SUBMIT_POLL_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -550,6 +574,7 @@ SUBMIT_POLL_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+# poll (vote) card
 POLL_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -607,6 +632,7 @@ POLL_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+# results card
 POLL_RESULTS_TEMPLATE = {
     "type": "AdaptiveCard",
     "version": "1.0",
@@ -669,17 +695,20 @@ POLL_RESULTS_TEMPLATE = {
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
 
+# result participat card piece
 RESULT_PARTICIPANT_TEMPLATE = {
     "type": "TextBlock",
     "text": "{{display_name}}",
     "horizontalAlignment": "Left",
 }
 
+# vote participant card piece
 PARTICIPANT_ITEM_TEMPLATE = {
     "type": "TextBlock",
     "text": "{{display_name}}"
 }
 
+# settings card piece
 SETTINGS_BLOCK = [
     {
         "type": "ColumnSet",
@@ -751,6 +780,7 @@ SETTINGS_BLOCK = [
     }
 ]
 
+# user settings card
 USER_SETTINGS_TEMPLATE = {
     "type": "AdaptiveCard",
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -776,6 +806,7 @@ USER_SETTINGS_TEMPLATE = {
     ]
 }
 
+# room settings card
 ROOM_SETTINGS_TEMPLATE = {
     "type": "AdaptiveCard",
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
