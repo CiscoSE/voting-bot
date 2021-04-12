@@ -169,7 +169,14 @@ def clear_current_state(room_id):
     """
     ddb.delete_db_record(room_id, "FSM_STATE")
     
-def load_settings(room_id, event_name, args_dict):    
+def load_settings(room_id, event_name, args_dict):
+    """load space or user settings. User settings take precedens over space settings.
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    args_dict -- arguments passed to the event handler function
+    """
     person_id = args_dict.get("personId")
     room_settings = BotSettings(db = ddb, settings_id = room_id)
     flask_app.logger.debug("Room settings {}stored, value: {}".format("not " if not room_settings.stored else "", room_settings.settings))
@@ -183,6 +190,14 @@ def load_settings(room_id, event_name, args_dict):
     return room_settings
                 
 def act_added_to_space(room_id, event_name, settings, args_dict):
+    """handle the Bot-added-to-a-space event
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    settings -- current active settings (user- or space-level)
+    args_dict -- arguments passed to the event handler function
+    """
     """Bot was added to the Space"""
     person_id = args_dict["actorId"]
     person_settings = BotSettings(db = ddb, settings_id = person_id)
@@ -207,6 +222,14 @@ def act_added_to_space(room_id, event_name, settings, args_dict):
         send_welcome_form(room_id, person_settings)
         
 def act_save_room_settings(room_id, event_name, settings, args_dict):
+    """save the settings provided by Room settings card
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    settings -- current active settings (user- or space-level)
+    args_dict -- arguments passed to the event handler function
+    """
     inputs = args_dict.get("inputs", {})
     room_settings = BotSettings(db = ddb, settings_id = room_id)
     room_settings.settings = inputs
@@ -216,6 +239,14 @@ def act_save_room_settings(room_id, event_name, settings, args_dict):
     send_welcome_form(room_id, room_settings)
         
 def act_save_user_settings(room_id, event_name, settings, args_dict):
+    """save the settings provided by User settings card in 1-1 communication with a user
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    settings -- current active settings (user- or space-level)
+    args_dict -- arguments passed to the event handler function
+    """
     person_id = args_dict.get("personId")
     inputs = args_dict.get("inputs", {})
     person_settings = BotSettings(db = ddb, settings_id = person_id)
@@ -225,15 +256,37 @@ def act_save_user_settings(room_id, event_name, settings, args_dict):
     person_settings.save()
 
 def send_welcome_form(room_id, settings):
+    """send the Welcome form to the Space
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    settings -- current active settings (user- or space-level)
+    """
     attach = [bc.wrap_form(bc.localize(bc.WELCOME_TEMPLATE, settings.settings["language"]))]
     form_type = "WELCOME_FORM"
     send_message({"roomId": room_id}, "welcome form", attachments=attach, form_type=form_type)
     
 def act_removed_from_space(room_id, event_name, settings, args_dict):
+    """handle the Bot-removed-from-a-space event
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    settings -- current active settings (user- or space-level)
+    args_dict -- arguments passed to the event handler function
+    """
     """Bot was removed from the Space"""
     flask_app.logger.debug("removed from space {}".format(room_id))
 
 def act_start_end_meeting(room_id, event_name, settings, args_dict):
+    """handle the Meeting start event
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    settings -- current active settings (user- or space-level)
+    args_dict -- arguments passed to the event handler function
+    """
     """Meeting started/ended - sent the proper card"""
     try:
         flask_app.logger.debug("{} meeting args: {}".format(event_name, args_dict))
@@ -241,7 +294,8 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
         # TODO remove previous start/end meeting form
         
         moderators = get_moderators(room_id)
-        
+                
+        # only moderators (if there are any) are allowed to start/end meeting
         if moderators:
             if person_id not in moderators:
                 flask_app.logger.debug("{} is not a moderator in the roomId {}, ignorng start/end request".format(person_id, room_id))
@@ -283,6 +337,7 @@ def act_start_end_meeting(room_id, event_name, settings, args_dict):
         attach = [bc.wrap_form(bc.localize(form, settings.settings["language"]))]
         msg_id = send_message({"roomId": room_id}, "{} meeting form".format(event_name), attachments=attach, form_type=form_type)
         
+        # send meeting summary in XLSX format
         if event_name == "ev_end_meeting":
             results_items, meeting_name = get_last_meeting_results(room_id)
             if len(results_items) > 0:
@@ -346,6 +401,14 @@ def get_present_users(room_id):
     return present_users
 
 def act_start_poll(room_id, event_name, settings, args_dict):
+    """handle the start poll event
+    
+    arguments:
+    room_id -- room id to which the settings is related
+    event_name -- name of the events
+    settings -- current active settings (user- or space-level)
+    args_dict -- arguments passed to the event handler function
+    """
     """start the poll, send the poll card"""
     inputs = args_dict.get("inputs", {})
     subject = inputs.get("poll_subject")
@@ -619,16 +682,9 @@ def create_webhook(target_url):
             
     return status
 
-def group_info(bot_name):
-    return "Nezapomeňte, že je třeba mne oslovit '@{}'".format(bot_name)
-
 def greetings(personal=True):
     
-    greeting_msg = """
-Dobrý den, jsem BOT pro řízení hlasování ve Webex Teams Prostoru (Space). Vše se odehrává pomocí formulářů, které vám budu posílat.
-
-Přidejte mě do Prostoru, ve kterém chcete hlasovat.
-"""
+    greeting_msg = bc.localize("{{loc_1_1_welcome_1}}", "en_US")
 
     return greeting_msg
 

@@ -9,10 +9,10 @@ DEFAULT_SETTINGS = {
 }
     
 class BotSettings():
-"""maintain and save Bot settings
+    """maintain and save Bot settings
 
-settings are saved in the database. Setter is incremetal so a partial update doesn't delete the non-updated fields.
-"""
+    settings are saved in the database. Setter is incremetal so a partial update doesn't delete the non-updated fields.
+    """
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 

@@ -88,7 +88,12 @@ CS_CZ = {
     "loc_publish_poll_results_3": "proti",
     "loc_publish_poll_results_4": "zdržel se",
     "loc_publish_poll_results_5": "Výsledky ke stažení.",
-    "loc_publish_poll_results_6": "volba"
+    "loc_publish_poll_results_6": "volba",
+    "loc_1_1_welcome_1": """
+Dobrý den, jsem BOT pro řízení hlasování ve Webex Teams Prostoru (Space). Vše se odehrává pomocí formulářů, které vám budu posílat.
+
+Přidejte mě do Prostoru, ve kterém chcete hlasovat.
+"""
 }
 
 EN_US = {
@@ -163,8 +168,12 @@ EN_US = {
     "loc_publish_poll_results_3": "nay",
     "loc_publish_poll_results_4": "abstained",
     "loc_publish_poll_results_5": "Results for download.",
-    "loc_publish_poll_results_6": "vote"
-}
+    "loc_publish_poll_results_6": "vote",
+    "loc_1_1_welcome_1": """
+Hello, I am a Bot for conducting voting in a Webex Space. All is handled using forms I'm going to send you.
+
+Please add me to a Space in which you want to run the voting.
+"""}
 
 # add the previously defined language constant to make it available for the Bot
 LOCALES = {
