@@ -545,6 +545,7 @@ MEETING_FSM = [
 ["any_state", "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["WELCOME", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["ROOM_SETTINGS", "ev_room_settings_data", act_save_room_settings, "WELCOME"],
+["MEETING_INACTIVE", "ev_room_settings_data", act_save_room_settings, "same_state"],
 ["MEETING_INACTIVE", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["MEETING_ACTIVE", "ev_presence", act_presence, "same_state"],
 ["POLL_RUNNING", "ev_presence", act_presence, "same_state"],
