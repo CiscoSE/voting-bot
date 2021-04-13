@@ -921,10 +921,13 @@ def handle_webhook_event(webhook):
 def detect_form_event(form_type, attachment_data):
     inputs = attachment_data.get("inputs", {})
     event = "ev_none"
+    button_pressed = inputs.get("action", None)
     if form_type in ["WELCOME_FORM", "END_MEETING_FORM"]:
-        event = "ev_start_meeting"
+        if button_pressed == "start_meeting":
+            event = "ev_start_meeting"
+        elif button_pressed == "change_settings":
+            event = "ev_room_settings_data"
     elif form_type in ["START_MEETING_FORM", "POLL_RESULTS"]:
-        button_pressed = inputs.get("action", None)
         if button_pressed == "present":
             event = "ev_presence"
         elif button_pressed == "start_poll":

@@ -69,6 +69,110 @@ YEA_STYLE = "good"
 NAY_STYLE = "warning"
 ABSTAIN_STYLE = "emphasis"
 
+# settings card piece
+SETTINGS_BLOCK = [
+    {
+        "type": "ColumnSet",
+        "columns": [
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "TextBlock",
+                        "text": "{{loc_settings_block_1}}",
+                        "wrap": True
+                    }
+                ]
+            },
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "Input.ChoiceSet",
+                        "choices": ls.lang_list_for_card(),
+                        "placeholder": "{{loc_settings_block_2}}",
+                        "id": "language",
+                        "value": "en_US"
+                    }
+                ]
+            }
+        ]
+    }, 
+    {
+        "type": "ColumnSet",
+        "columns": [
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "TextBlock",
+                        "text": "{{loc_settings_block_3}}",
+                        "wrap": True
+                    }
+                ]
+            },
+            {
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "Input.ChoiceSet",
+                        "choices": [
+                            {
+                                "title": "{{loc_settings_block_4}}",
+                                "value": "yes"
+                            },
+                            {
+                                "title": "{{loc_settings_block_5}}",
+                                "value": "no"
+                            }
+                        ],
+                        "placeholder": "",
+                        "style": "expanded",
+                        "id": "partial_results",
+                        "value": "no"
+                    }
+                ]
+            }
+        ]
+    }
+]
+
+# change settings card piece
+CHANGE_SETTINGS_BLOCK = {
+    "type": "ActionSet",
+    "horizontalAlignment": "Right",
+    "actions": [
+        {
+            "type": "Action.ShowCard",
+            "title": "{{loc_change_settings_block_1}}",
+            "card": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "body": SETTINGS_BLOCK + [
+                    {
+                        "type": "ActionSet",
+                        "horizontalAlignment": "Right",
+                        "actions": [
+                            {
+                                "type": "Action.Submit",
+                                "title": "{{loc_change_settings_block_2}}",
+                                "id": "change_settings",
+                                "data": {"action": "change_settings"}
+                            }
+                        ]
+                    }
+                ]
+            },
+            "id": "change_settings_card"
+        }
+    ],
+    "id": "change_settings_set"
+}
+
 # welcome message card
 WELCOME_TEMPLATE = {
     "type": "AdaptiveCard",
@@ -138,7 +242,8 @@ WELCOME_TEMPLATE = {
                     }
                 }
             ]
-        }
+        },
+        CHANGE_SETTINGS_BLOCK
     ],
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
@@ -466,7 +571,8 @@ END_MEETING_TEMPLATE = {
                     }
                 }
             ]
-        }
+        },
+        CHANGE_SETTINGS_BLOCK
     ],
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
 }
@@ -707,78 +813,6 @@ PARTICIPANT_ITEM_TEMPLATE = {
     "type": "TextBlock",
     "text": "{{display_name}}"
 }
-
-# settings card piece
-SETTINGS_BLOCK = [
-    {
-        "type": "ColumnSet",
-        "columns": [
-            {
-                "type": "Column",
-                "width": "stretch",
-                "items": [
-                    {
-                        "type": "TextBlock",
-                        "text": "{{loc_settings_block_1}}",
-                        "wrap": True
-                    }
-                ]
-            },
-            {
-                "type": "Column",
-                "width": "stretch",
-                "items": [
-                    {
-                        "type": "Input.ChoiceSet",
-                        "choices": ls.lang_list_for_card(),
-                        "placeholder": "{{loc_settings_block_2}}",
-                        "id": "language",
-                        "value": "en_US"
-                    }
-                ]
-            }
-        ]
-    }, 
-    {
-        "type": "ColumnSet",
-        "columns": [
-            {
-                "type": "Column",
-                "width": "stretch",
-                "items": [
-                    {
-                        "type": "TextBlock",
-                        "text": "{{loc_settings_block_3}}",
-                        "wrap": True
-                    }
-                ]
-            },
-            {
-                "type": "Column",
-                "width": "stretch",
-                "items": [
-                    {
-                        "type": "Input.ChoiceSet",
-                        "choices": [
-                            {
-                                "title": "{{loc_settings_block_4}}",
-                                "value": "yes"
-                            },
-                            {
-                                "title": "{{loc_settings_block_5}}",
-                                "value": "no"
-                            }
-                        ],
-                        "placeholder": "",
-                        "style": "expanded",
-                        "id": "partial_results",
-                        "value": "no"
-                    }
-                ]
-            }
-        ]
-    }
-]
 
 # user settings card
 USER_SETTINGS_TEMPLATE = {
