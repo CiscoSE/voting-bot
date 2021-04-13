@@ -609,6 +609,7 @@ MEETING_FSM = [
 ["any_state", "ev_added_to_space", act_added_to_space, "WELCOME"],
 ["WELCOME", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["ROOM_SETTINGS", "ev_room_settings_data", act_save_room_settings, "WELCOME"],
+["WELCOME", "ev_room_settings_data", act_save_room_settings, "WELCOME"],
 ["MEETING_INACTIVE", "ev_room_settings_data", act_save_room_settings, "same_state"],
 ["MEETING_INACTIVE", "ev_start_meeting", act_start_end_meeting, "MEETING_ACTIVE"],
 ["MEETING_ACTIVE", "ev_presence", act_presence, "same_state"],
@@ -922,6 +923,7 @@ def detect_form_event(form_type, attachment_data):
     inputs = attachment_data.get("inputs", {})
     event = "ev_none"
     button_pressed = inputs.get("action", None)
+    flask_app.logger.debug("Button pressed: {}".format(button_pressed))
     if form_type in ["WELCOME_FORM", "END_MEETING_FORM"]:
         if button_pressed == "start_meeting":
             event = "ev_start_meeting"

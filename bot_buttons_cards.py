@@ -234,7 +234,8 @@ WELCOME_TEMPLATE = {
                                     {
                                         "type": "Action.Submit",
                                         "title": "{{loc_bot_welcome_6}}",
-                                        "id": "start_meeting"
+                                        "id": "start_meeting",
+                                        "data": {"action": "start_meeting"}
                                     }
                                 ]
                             }
@@ -563,7 +564,8 @@ END_MEETING_TEMPLATE = {
                                     {
                                         "type": "Action.Submit",
                                         "title": "{{loc_end_meeting_6}}",
-                                        "id": "start_meeting"
+                                        "id": "start_meeting",
+                                        "data": {"action": "start_meeting"}
                                     }
                                 ]
                             }
