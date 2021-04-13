@@ -5,7 +5,8 @@ DEFAULT_SETTINGS = {
   "partial_results": True,  # send results after each vote
   "active_votes": False,    # accept only votes by pressed button, if False, non-press counts as "abstantiated"
   "user_1_1": False,        # 1-1 space with user already created
-  "user_updated": False     # user has updated the settings
+  "user_updated": False,    # user has updated the settings
+  "timestamp": 0            # timestamp of last save
 }
     
 class BotSettings():
