@@ -6,7 +6,35 @@ import re
 import uuid
 import logging
 from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv())
+
+"""
+for AWS Lambda 'dev' vs. 'production' deployment:
+In zappa_settings.json set the "environment_variables".
+
+For example:
+{
+    "dev": {
+        "environment_variables": {
+            "DOT_ENV_FILE": ".env_dev"
+        },
+    },
+    "prod": {
+        "environment_variables": {
+            "DOT_ENV_FILE": ".env_prod"
+        }
+    }
+}
+
+Each ".env_something" file can hold a different Bot configuration - identity, database, etc.
+Especially identity is important because the Bot always has its own set of webhooks.
+So running two AWS Lambda instances ('dev' vs. 'prod' for example) under the same identity
+would result in duplicate responses.
+""" 
+dotenv_file = os.getenv("DOT_ENV_FILE")
+if dotenv_file:
+    load_dotenv(find_dotenv(dotenv_file))
+else:
+    load_dotenv(find_dotenv())
 
 from urllib.parse import urlparse, urlunparse, quote, parse_qsl, urlencode
 
