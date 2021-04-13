@@ -1,4 +1,6 @@
 import logging
+from datetime import datetime
+from timestamp import create_timestamp, parse_timestamp
 
 DEFAULT_SETTINGS = {
   "language": "en_US",
@@ -6,7 +8,7 @@ DEFAULT_SETTINGS = {
   "active_votes": False,    # accept only votes by pressed button, if False, non-press counts as "abstantiated"
   "user_1_1": False,        # 1-1 space with user already created
   "user_updated": False,    # user has updated the settings
-  "timestamp": 0            # timestamp of last save
+  "timestamp": create_timestamp(datetime.fromtimestamp(0)) # timestamp of last save
 }
     
 class BotSettings():
@@ -43,7 +45,16 @@ class BotSettings():
                 value = False
             self._settings[key] = value
             
+    @property
+    def timestamp(self):
+        return parse_timestamp(self._settings["timestamp"])
+        
+    @timestamp.setter
+    def timestamp(self, new_timestamp):
+        self._settings["timestamp"] = create_timestamp(new_timestamp)
+            
     def save(self):
+        self.timestamp = datetime.utcnow()
         self.logger.info("setting save, id: {}, data: {}".format(self._settings_id, self._settings))
         if self._db is None:
             return
