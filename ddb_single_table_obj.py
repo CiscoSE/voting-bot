@@ -49,15 +49,14 @@ class DDB_Single_Table():
 
 
     def setup_table(self):
-
-        try:
+        existing_tables = self.db_client.list_tables()['TableNames']
+        if self.table_name not in existing_tables:
+            self.logger.info("table {} not found, creating new...".format(self.table_name))
+            return self.initialize_table()
+        else:
             response = self.db_client.describe_table(TableName=self.table_name)
             self.logger.info("table {} already exists.".format(self.table_name))
             return self.db.Table(self.table_name)
-
-        except self.db_client.exceptions.ResourceNotFoundException:
-            self.logger.info("table {} not found, creating new...", (self.table_name))
-            return self.initialize_table()
                 
     def initialize_table(self):
         try:
@@ -102,17 +101,18 @@ class DDB_Single_Table():
                             'Projection': {
                                 'ProjectionType': 'ALL'
                             },
-                            'ProvisionedThroughput': {
-                                'ReadCapacityUnits': 10,
-                                'WriteCapacityUnits': 10
-                            }        
+                            # 'ProvisionedThroughput': {
+                            #     'ReadCapacityUnits': 10,
+                            #     'WriteCapacityUnits': 10
+                            # }        
                     },
                 ],
-                ProvisionedThroughput={
-                    'ReadCapacityUnits': 10,
-                    'WriteCapacityUnits': 10
-                },
-                BillingMode='PROVISIONED',
+                # ProvisionedThroughput={
+                #     'ReadCapacityUnits': 10,
+                #     'WriteCapacityUnits': 10
+                # },
+                # BillingMode='PROVISIONED',
+                BillingMode='PAY_PER_REQUEST',
             )
             self.logger.info("Waiting for table to create...")
             table.meta.client.get_waiter('table_exists').wait(TableName=self.table_name)
