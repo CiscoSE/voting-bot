@@ -17,6 +17,7 @@ webex_api = WebexTeamsAPI()
 
 from ddb_single_table_obj import DDB_Single_Table
 from settings import BotSettings
+from timestamp import create_timestamp, parse_timestamp
 
 import json, requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -177,15 +178,19 @@ def load_settings(room_id, event_name, args_dict):
     event_name -- name of the events
     args_dict -- arguments passed to the event handler function
     """
-    person_id = args_dict.get("personId")
     room_settings = BotSettings(db = ddb, settings_id = room_id)
     flask_app.logger.debug("Room settings {}stored, value: {}".format("not " if not room_settings.stored else "", room_settings.settings))
-    if person_id is not None:
-        person_settings = BotSettings(db = ddb, settings_id = person_id)
-        flask_app.logger.debug("Person {} settings {}stored, value: {}".format(person_id, "not " if not person_settings.stored else "", person_settings.settings))
-        if person_settings.stored and person_settings.settings.get("user_updated", False):
-            room_settings.settings = person_settings.settings
-            room_settings.save()
+
+    if not room_settings.stored:
+        person_id = args_dict.get("personId")
+        if person_id is not None:
+            person_settings = BotSettings(db = ddb, settings_id = person_id)
+            flask_app.logger.debug("Person {} settings {}stored, value: {}".format(person_id, "not " if not person_settings.stored else "", person_settings.settings))
+            if person_settings.timestamp > room_settings.timestamp:        
+            # if person_settings.stored and person_settings.settings.get("user_updated", False):
+                room_settings.settings = person_settings.settings
+
+        room_settings.save()
                 
     return room_settings
                 
@@ -622,14 +627,6 @@ MEETING_FSM = [
 ["any_state", "ev_removed_from_space", act_removed_from_space, "REMOVED"],
 ["any_state", "ev_user_settings_data", act_save_user_settings, "same_state"]
 ]
-
-def create_timestamp():
-    """time stamp in UTC (ISO 8601) format - used as secondary key in some DB operations"""
-    return datetime.utcnow().isoformat()[:-3]+'Z'
-    
-def parse_timestamp(time_str):
-    """create datetime object from UTC (ISO 8601) string"""
-    return datetime.fromisoformat(time_str.replace("Z", "+00:00"))
 
 def get_my_url():
     """workaround to get the full Bot URL in case the application context is not available"""
