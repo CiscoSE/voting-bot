@@ -173,6 +173,62 @@ CHANGE_SETTINGS_BLOCK = {
     "id": "change_settings_set"
 }
 
+START_MEETING_BLOCK = {
+    "type": "ActionSet",
+    "horizontalAlignment": "Right",
+    "actions": [
+        {
+            "type": "Action.ShowCard",
+            "title": "{{loc_bot_welcome_3}}",
+            "card": {
+                "type": "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "body": [
+                    {
+                        "type": "ColumnSet",
+                        "columns": [
+                            {
+                                "type": "Column",
+                                "width": "stretch",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "{{loc_bot_welcome_4}}:",
+                                        "horizontalAlignment": "Right"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Column",
+                                "width": "stretch",
+                                "items": [
+                                    {
+                                        "type": "Input.Text",
+                                        "placeholder": "{{loc_bot_welcome_5}}",
+                                        "id": "meeting_subject"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "ActionSet",
+                        "horizontalAlignment": "Right",
+                        "actions": [
+                            {
+                                "type": "Action.Submit",
+                                "title": "{{loc_bot_welcome_6}}",
+                                "id": "start_meeting",
+                                "data": {"action": "start_meeting"}
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}
+
 # welcome message card
 WELCOME_TEMPLATE = {
     "type": "AdaptiveCard",
@@ -189,61 +245,7 @@ WELCOME_TEMPLATE = {
             "type": "TextBlock",
             "text": "{{loc_bot_welcome_2}}"
         },
-        {
-            "type": "ActionSet",
-            "horizontalAlignment": "Right",
-            "actions": [
-                {
-                    "type": "Action.ShowCard",
-                    "title": "{{loc_bot_welcome_3}}",
-                    "card": {
-                        "type": "AdaptiveCard",
-                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                        "body": [
-                            {
-                                "type": "ColumnSet",
-                                "columns": [
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "TextBlock",
-                                                "text": "{{loc_bot_welcome_4}}:",
-                                                "horizontalAlignment": "Right"
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "Input.Text",
-                                                "placeholder": "{{loc_bot_welcome_5}}",
-                                                "id": "meeting_subject"
-                                            }
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "ActionSet",
-                                "horizontalAlignment": "Right",
-                                "actions": [
-                                    {
-                                        "type": "Action.Submit",
-                                        "title": "{{loc_bot_welcome_6}}",
-                                        "id": "start_meeting",
-                                        "data": {"action": "start_meeting"}
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
+        START_MEETING_BLOCK,
         CHANGE_SETTINGS_BLOCK
     ],
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
@@ -519,61 +521,7 @@ END_MEETING_TEMPLATE = {
             "type": "TextBlock",
             "text": "{{display_name}} {{loc_end_meeting_2}}."
         },
-        {
-            "type": "ActionSet",
-            "horizontalAlignment": "Right",
-            "actions": [
-                {
-                    "type": "Action.ShowCard",
-                    "title": "{{loc_end_meeting_3}}",
-                    "card": {
-                        "type": "AdaptiveCard",
-                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                        "body": [
-                            {
-                                "type": "ColumnSet",
-                                "columns": [
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "TextBlock",
-                                                "text": "{{loc_end_meeting_4}}:",
-                                                "horizontalAlignment": "Right"
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        "type": "Column",
-                                        "width": "stretch",
-                                        "items": [
-                                            {
-                                                "type": "Input.Text",
-                                                "placeholder": "{{loc_end_meeting_5}}",
-                                                "id": "meeting_subject"
-                                            }
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "ActionSet",
-                                "horizontalAlignment": "Right",
-                                "actions": [
-                                    {
-                                        "type": "Action.Submit",
-                                        "title": "{{loc_end_meeting_6}}",
-                                        "id": "start_meeting",
-                                        "data": {"action": "start_meeting"}
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
+        START_MEETING_BLOCK,
         CHANGE_SETTINGS_BLOCK
     ],
     "$schema": "http://adaptivecards.io/schemas/adaptive-card.json"
