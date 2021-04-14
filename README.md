@@ -13,6 +13,7 @@ Once the Bot is up and running and has its [Webhooks](https://developer.webex.co
 adds the Bot to a Webex Space. Bot sends a settings card for language selection and then sends a welcome card which allows
 to start a voting session.
 ![Bot welcome card](./images/bot_invite_1.png)
+<img src="./images/bot_invite_1.png" width="50%">
 If there are moderators in the Space, only they are allowed to start/end the session or start voting. If there are no moderators,
 any Space member can manage the session. Once the session is started, Bot sends another card which allows to start
 a particular voting. Topic and time limit has to be set for the voting. **Present** button allows to record a user's presence.
