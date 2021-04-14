@@ -1,7 +1,7 @@
-[What is Voting Bot](#what-is-voting-bot)
-[How to run](#how-to-run)
-[Installing & running locally](#installing--running-locally)
-[AWS Lambda / Zappa Notes](#aws-lambda--zappa-notes)
+[What is Voting Bot](#what-is-voting-bot)  
+[How to run](#how-to-run)  
+[Installing & running locally](#installing--running-locally)  
+[AWS Lambda / Zappa Notes](#aws-lambda--zappa-notes)  
 ## What is Voting Bot
 Poll (Voting) Bot is a demonstration of how [Buttons & Cards](https://developer.webex.com/docs/api/guides/cards) can be used
 in a Webex Space. The major benefits are:
