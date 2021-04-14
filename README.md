@@ -30,10 +30,10 @@ At the end of the time limit or if a user clicks **End voting**, the voting card
 summary with optional Excel sheet is sent to the Space.  
 <img src="./images/voting_end_1.png" width="90%">  
 Multiple votings can be run during the session. Once the user decides to end the session,
-<img src="./images/session_end_1.png" width="50%">  
+<img src="./images/session_end_1.png" width="60%">  
 Excel file with all votings summary is sent the Space. As the file is a part of the Space content, it is available for download
 to all Space members.  
-<img src="./images/session_end_2.png" width="80%">  
+<img src="./images/session_end_2.png" width="75%">  
 
 ## How to run
 The Poll (Voting) Bot is designed to run in Amazon Lambda. Use [Zappa](https://github.com/Miserlou/Zappa) to deploy it. It's using DynamoDB to store its data and runs in Flask WSGI. In development mode it can run locally as DynamoDB is provided as a Docker container and Flask can be started in development mode.
