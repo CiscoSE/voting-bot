@@ -1,5 +1,4 @@
-* auto-gen TOC:
-{:toc}
+[TOC]
 ## What is Voting Bot
 Poll (Voting) Bot is a demonstration of how [Buttons & Cards](https://developer.webex.com/docs/api/guides/cards) can be used
 in a Webex Space. The major benefits are:
