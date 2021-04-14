@@ -5,7 +5,8 @@ LANGUAGES = {
     "cs_CZ": "Čeština",
     "en_US": "English",
     "de_DE": "Deutsch",
-    "il_HE": "עברית"
+    "il_HE": "עברית",
+    "hu_HU": "Magyar"
 }
 
 def lang_list_for_card():
@@ -17,7 +18,7 @@ def lang_list_for_card():
     
     return lan_list
 
-# each language has to have it's own constant here
+# each language has to have its own constant here
 CS_CZ = {
     "loc_default_form_msg": "Toto je formulář. Zobrazíte si ho v aplikaci nebo webovém klientovi Webex.",
     "loc_bot_welcome_1": "Vítá vás bot pro řízení hlasování",
@@ -321,10 +322,87 @@ IL_HE = {
 הוסיפו אותי לחדר בו תרצו לקיים הצבעה.
 """}
 
+HU_HU = {
+    "loc_default_form_msg": "Ez egy űrlap. Megjeleníthető Webex alkalmazásban vagy webes kliensben.",
+    "loc_bot_welcome_1": "Üdvözli a szavazó-bot",
+    "loc_bot_welcome_2": "Kérjük, indítson új szavazási munkamenetet",
+    "loc_bot_welcome_3": "Szavazási munkamenet indítása",
+    "loc_bot_welcome_4": "Szavazási munkamenet elnevezése",
+    "loc_bot_welcome_5": "Írja be az elnevezést",
+    "loc_bot_welcome_6": "Kezdés",
+    "loc_poll_block_1": "Szavazás",
+    "loc_poll_block_2": "Témakör",
+    "loc_poll_block_3": "Adja meg a témakört",
+    "loc_poll_block_4": "Időkorlát",
+    "loc_poll_block_5": "perc",
+    "loc_poll_block_6": "perc",
+    "loc_poll_block_7": "Szavazás megkezdése",
+    "loc_poll_block_8": "Időkorlát kiválasztása",
+    "loc_next_poll_block_1": "Következő szavazás",
+    "loc_end_meeting_block_1": "Szavazási munkamenet lezárása",
+    "loc_end_meeting_block_2": "Befejezés",
+    "loc_start_meeting_1": "Szavazási munkamenet",
+    "loc_start_meeting_2": "elindult",
+    "loc_start_meeting_3": "elindította a szavazási munkamenetet",
+    "loc_start_meeting_4": "Bökjön a",
+    "loc_start_meeting_5": "Jelen",
+    "loc_start_meeting_6": "gombra. Ellenkező esetben az Ön jelenlétét az első szavazat leadásának pillanatától kezdve rögzítjük.",
+    "loc_start_meeting_7": "Jelen",
+    "loc_start_meeting_8": "Szavazás",
+    "loc_start_meeting_9": "Szavazás befejezése",
+    "loc_start_meeting_10": "Lezárás",
+    "loc_end_meeting_1": "Szavazási munkamenet lezárult",
+    "loc_end_meeting_2": "lezárta a szavazási munkamenetet",
+    "loc_submit_poll_1": "Témakör",
+    "loc_submit_poll_2": "Adja meg a témakört",
+    "loc_submit_poll_3": "Időkorlát",
+    "loc_submit_poll_4": "Szavazás megkezdése",
+    "loc_submit_poll_5": "Szavazási munkamenet lezárása",
+    "loc_submit_poll_6": "Befejezés",
+    "loc_submit_poll_7": "Időkorlát kiválasztása",
+    "loc_poll_template_1": "megnyitotta a szavazást",
+    "loc_poll_template_2": "Szavazási indítvány",
+    "loc_poll_template_3": "Időkorlát",
+    "loc_poll_template_4": "Igen",
+    "loc_poll_template_5": "Nem",
+    "loc_poll_template_6": "Tartózkodom",
+    "loc_poll_results_1": "szavazás eredménye",
+    "loc_poll_results_2": "Igen",
+    "loc_poll_results_3": "Nem",
+    "loc_poll_results_4": "Tartózkodott",
+    "loc_settings_block_1": "Nyelv",
+    "loc_settings_block_2": "Nyelv kiválasztása",
+    "loc_settings_block_3": "Részeredmények közzététele az egyes szavazások után",
+    "loc_settings_block_4": "Igen",
+    "loc_settings_block_5": "Nem",
+    "loc_user_settings_1": "Bot beállítások",
+    "loc_user_settings_2": "A beállítások minden szavazási munkamenetre vonatkoznak, amelyeket olyan Térben indít, amelyhez hozzáadta a botot. Ha később módosítani szeretné a szavazási beállításokat, látogasson el erre az űrlapra, és módosítsa a beállításokat, mielőtt a botot egy másik térhez hozzáadná.",
+    "loc_user_settings_3": "Mentés",
+    "loc_room_settings_1": "Bot beállítások",
+    "loc_room_settings_2": "A beállítások minden új, ebben a térben indított szavazási munkamenetre vonatkoznak. Ha később szeretné megváltoztatni a szavazási beállításokat, látogasson el erre az űrlapra, és módosítsa a beállításokat a következő szavazási munkamenet indítása előtt.",
+    "loc_room_settings_3": "Mentés",
+    "loc_act_start_end_meeting_1": "indíthatnak",
+    "loc_act_start_end_meeting_2": "zárhatnak le",
+    "loc_act_start_end_meeting_3": "Csak a(z) **{}** Tér moderátorai {} szavazási munkamenetet. Kérje meg őket. A moderátorok listája a Térben a Személyek listában érhető el.",
+    "loc_act_start_end_meeting_4": "Letölthető eredmények.",
+    "loc_publish_poll_results_1": "név",
+    "loc_publish_poll_results_2": "igen",
+    "loc_publish_poll_results_3": "nem",
+    "loc_publish_poll_results_4": "tartózkodott",
+    "loc_publish_poll_results_5": "Letölthető eredmények.",
+    "loc_publish_poll_results_6": "szavazat",
+    "loc_change_settings_block_1": "Beállítások módosítása",
+    "loc_change_settings_block_2": "Mentés",
+    "loc_1_1_welcome_1": """
+Helló, szavazás-lebonyolító bot vagyok Webex Terekhez. Minden az általam küldött űrlapok segítségével történik.
+Kérem, adjon hozzá egy olyan Térhez, amelyben szavazást szeretne lefolytatni.
+"""}
+
 # add the previously defined language constant to make it available for the Bot
 LOCALES = {
     "cs_CZ": CS_CZ,
     "en_US": EN_US,
     "de_DE": DE_DE,
-    "il_HE": "עברית"
+    "il_HE": "עברית",
+    "hu_HU": HU_HU
 }
