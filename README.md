@@ -20,7 +20,7 @@ Once the user is "present", his vote is recorded no matter if he actively clicks
 his vote is recorded as "abstained". Once the user actively participates in the voting, no matter if he pressed the **Present**,
 he is taken as "present" until the end of the session.  
 <img src="./images/voting_start_1.png" width="50%">  
-Voting card is sent to the Space and all Space members can click the buttons. Last click is taken as valid for each user.
+Voting card is sent to the Space and all Space members can click the buttons. Last click is taken as valid for each user.  
 <img src="./images/voting_card_1.png" width="50%">  
 At the end of the time limit or if a user clicks **End voting**, the voting card is deleted and no more votes can be cast. Voting
 summary with optional Excel sheet is sent to the Space.  
@@ -29,7 +29,7 @@ Multiple votings can be run during the session. Once the user decides to end the
 <img src="./images/session_end_1.png" width="50%">  
 Excel file with all votings summary is sent the Space. As the file is a part of the Space content, it is available for download
 to all Space members.  
-<img src="./images/session_end_2.png" width="70%">  
+<img src="./images/session_end_2.png" width="80%">  
 
 ## How to run
 The Poll (Voting) Bot is designed to run in Amazon Lambda. Use [Zappa](https://github.com/Miserlou/Zappa) to deploy it. It's using DynamoDB to store its data and runs in Flask WSGI. In development mode it can run locally as DynamoDB is provided as a Docker container and Flask can be started in development mode.
