@@ -59,12 +59,9 @@ and replace the Authorization with the Bot's Access Token, or run `curl https://
 
 ## AWS Lambda / Zappa Notes
 The Bot is using [python-dotenv](https://pypi.org/project/python-dotenv/) to pass sensitive information,
-like Access Token, to the Python script. AWS Lambda with Zappa allows to run multiple instances of the
-same application. For example **dev**, **production**, etc. In order to allow the Vote Bot to run in such an environment
-the Bot allows Zappa to pass **DOT_ENV_FILE** environment variable to the script. **DOT_ENV_FILE** is a filename which contains
-the environment variables loaded by Dotenv. If there is no **DOT_ENV_FILE** the Bot loads the variables from **.env** file. So if you
-used **.env_local** to run the Bot locally, copy it to **.env** before loading script to AWS. Or you can set the **DOT_ENV_FILE**
-in zappa_settings.json. For example:
+like Access Token, to the Python script. AWS Lambda with [Zappa](https://github.com/Miserlou/Zappa) allows to run multiple 
+instances of the same application. For example **dev**, **production**, etc. In order to allow the Vote Bot to run in such an environment the Bot allows Zappa to pass **DOT_ENV_FILE** environment variable to the script. **DOT_ENV_FILE** is a filename which contains the environment variables loaded by Dotenv. If there is no **DOT_ENV_FILE** the Bot loads the variables from **.env** file.
+So if you used **.env_local** to run the Bot locally, copy it to **.env** before loading script to AWS. Or you can set the **DOT_ENV_FILE** in zappa_settings.json. For example:
 ```
 {
     "dev": {
@@ -81,3 +78,5 @@ in zappa_settings.json. For example:
     }
 }
 ```
+Consult the [Zappa](https://github.com/Miserlou/Zappa) documentation on how to set it up and get it working
+with your AWS account.
