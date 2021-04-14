@@ -1,5 +1,5 @@
 ## What is Voting Bot
-Poll (Voting Bot) is a demonstration of how [Buttons & Cards](https://developer.webex.com/docs/api/guides/cards) can be used
+Poll (Voting) Bot is a demonstration of how [Buttons & Cards](https://developer.webex.com/docs/api/guides/cards) can be used
 in a Webex Space. The major benefits are:
 * **easy-to-use user interface** - no need for text-based interaction
 * **all user actions carry the user's identity** - in this example the votes are automatically associated with the users
@@ -13,22 +13,23 @@ Once the Bot is up and running and has its [Webhooks](https://developer.webex.co
 adds the Bot to a Webex Space. Bot sends a settings card for language selection and then sends a welcome card which allows
 to start a voting session.
 ![Bot welcome card](./images/bot_invite_1.png)
-If there are moderators in the Space, only they are allowed to start/end the session or start a voting. If there are no moderators,
+If there are moderators in the Space, only they are allowed to start/end the session or start voting. If there are no moderators,
 any Space member can manage the session. Once the session is started, Bot sends another card which allows to start
 a particular voting. Topic and time limit has to be set for the voting. **Present** button allows to record a user's presence.
 Once the user is "present", his vote is recorded no matter if he actively clicks during the voting. If the user doesn't vote,
 his vote is recorded as "abstained". Once the user actively participates in the voting, no matter if he pressed the **Present**,
-he is taken as "present" until the end of session.
+he is taken as "present" until the end of the session.
 ![Voting start](./images/voting_start_1.png)
-Voting card is sent to the Space and all Space members can click the buttons. Last click is taken as valid.
+Voting card is sent to the Space and all Space members can click the buttons. Last click is taken as valid for each user.
 ![Voting card](./images/voting_card_1.png)
 At the end of the time limit or if a user clicks **End voting**, the voting card is deleted and no more votes can be cast. Voting
 summary with optional Excel sheet is sent to the Space.
 ![Voting end](./images/voting_end_1.png)
-Multiple votings can be run during a single session. Once the user decides to end the session,
+Multiple votings can be run during the session. Once the user decides to end the session,
 ![Voting end](./images/session_end_1.png)
 Excel file with all votings summary is sent the Space. As the file is a part of the Space content, it is available for download
 to all Space members.
+![Voting end](./images/session_end_2.png)
 
 ## How to run
 The Poll (Voting) Bot is designed to run in Amazon Lambda. Use [Zappa](https://github.com/Miserlou/Zappa) to deploy it. It's using DynamoDB to store its data and runs in Flask WSGI. In development mode it can run locally as DynamoDB is provided as a Docker container and Flask can be started in development mode.
