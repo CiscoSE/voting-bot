@@ -403,6 +403,6 @@ LOCALES = {
     "cs_CZ": CS_CZ,
     "en_US": EN_US,
     "de_DE": DE_DE,
-    "il_HE": "עברית",
+    "il_HE": IL_HE,
     "hu_HU": HU_HU
 }
