@@ -100,7 +100,7 @@ chose the public hostname at which your webhook is listening. You can't set it u
 you learn the hostname (and URL) after the application is installed. Webhook is using HTTP POST method, so GET is available for
 something different. For example to receive a manual request from your web browser.
 
-So the GET implementation in the Bot in `spark_webhook()` learns the current public URL at which the Bot is hosted and
+The GET implementation in the Bot in `spark_webhook()` learns the current public URL at which the Bot is hosted and
 then runs the webhook setup in `create_webhook()`. If you move the Bot from lab to production you do not need to change
 anything in the configuration. After the Bot is installed or its credentials changed, just copy the Bot URL which you
 learned from the installation process and paste it to your web browser. The Bot changes the webhook setup and sends you a greeting page.  
