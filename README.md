@@ -2,6 +2,7 @@
 [How to run](#how-to-run)  
 [Installing & running locally](#installing--running-locally)  
 [AWS Lambda / Zappa Notes](#aws-lambda--zappa-notes)  
+[What I've learned, interesting parts of the code](what-i-ve-learned-interesting-parts-of-the-code)  
 ## What is Voting Bot
 Poll (Voting) Bot is a demonstration of how [Buttons & Cards](https://developer.webex.com/docs/api/guides/cards) can be used
 in a Webex Space. The major benefits are:
@@ -84,3 +85,39 @@ So if you used **.env_local** to run the Bot locally, copy it to **.env** before
 ```
 Consult the [Zappa](https://github.com/Miserlou/Zappa) documentation on how to set it up and get it working
 with your AWS account.
+
+## What I've learned, interesting parts of the code
+I'm not a professional programmer, coding is for me a way to play and learn. This section is an unordered list of things I've learned
+when creating the Bot.
+### NoSQL database with a single table
+I use AWS to host my creations, so for a database storage I decided to use [DynamoDB](https://aws.amazon.com/dynamodb/). Which
+is NoSQL. When trying to learn how to use it effectively, I came across [this article](https://www.trek10.com/blog/dynamodb-single-table-relational-modeling). Based on that I've implemented [ddb_single_table_obj.py](./ddb_single_table_obj.py). It doesn't
+implement all DynamoDB features and some parts are not fully tested but it serves the purpose and it helped me to learn
+a bit how to use NoSQL.
+### HTTP GET / POST to the same URL
+Webhooks need to be registered to the Webex platform. When your application is hosted in a public cloud like AWS, you can't easily
+chose the public hostname at which your webhook is listening. You can't set it upfront in the application configuration. Typically
+you learn the hostname (and URL) after the application is installed. Webhook is using HTTP POST method, so GET is available for
+something different. For example to receive a manual request from your web browser.
+
+So the GET implementation in the Bot in `spark_webhook()` learns the current public URL at which the Bot is hosted and
+then runs the webhook setup in `create_webhook()`. If you move the Bot from lab to production you do not need to change
+anything in the configuration. After the Bot is installed or its credentials changed, just copy the Bot URL which you
+learned from the installation process and paste it to your web browser. The Bot changes the webhook setup and sends you a greeting page.  
+<img src="./images/bot_greeting_1.png" width="50%">  
+### Dotenv and Venv
+Use [python-dotenv](https://pypi.org/project/python-dotenv/) and [venv](https://python.land/virtual-environments/virtualenv)
+always and everywhere. Even for a small project. Venv makes the code easily portable to another platform by exporting/importing
+the requirements. Dotenv is a way to keep your sensitive information safe. No need to paste Access Token or other credentials
+to your code.
+### Finite-state machine
+[Finite-state machine (FSM)](https://medium.datadriveninvestor.com/state-machine-design-pattern-why-how-example-through-spring-state-machine-part-1-f13872d68c2d) is one of classical software design patterns. The Bot has a couple of states (session active/inactive, voting active/inactive, etc.) so after exploring a few dead ends I figured out that FSM is the way to go. Since many of buttons&cards
+remain in the Space, users can click them any time. So it's important that the Bot responds only to the clicks (events) which are related to the current state.
+### Webex Buttons & Cards Designer
+Apart of the official [Adaptive cards designer](https://adaptivecards.io/designer/) there is [Webex Buttons & Cards Designer](https://developer.webex.com/buttons-and-cards-designer) which provides the set of features implemented in Webex and is using the Webex UI look end feel. The designer output is in JSON format so in order to import it into Python you can do just a copy&paste and then
+replace **true** with **True** and you and up with native Python dict. This is useful for removing duplicities. In the code
+the cards can be composed of a skeleton structure and then a couple of references to commonly used blocks. See for example
+how `SETTINGS_BLOCK` is used in [bot_buttons_cards.py](./bot_buttons_cards.py).
+
+On top of that I've changed all strings to be referenced indirectly and put in place using `bot_buttons_cards.nested_replace()`. Any string in a message or a card can be referenced by `{{keyword}}`. `nested_replace()` converts the card or an original string to
+its final value. This makes the localization easy - localization strings are in [localization_strings.py](./localization_strings.py). And cards can be also filled with the current information - for example a session name or voting topic.
