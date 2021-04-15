@@ -120,4 +120,4 @@ the cards can be composed of a skeleton structure and then a couple of reference
 how `SETTINGS_BLOCK` is used in [bot_buttons_cards.py](./bot_buttons_cards.py).
 
 On top of that I've changed all strings to be referenced indirectly and put in place using `bot_buttons_cards.nested_replace()`. Any string in a message or a card can be referenced by `{{keyword}}`. `nested_replace()` converts the card or an original string to
-its final value. This makes the localization easy - localization strings are in [localization_strings.py](./localization_strings.py). And cards can be also filled with the current information - for example a session name or voting topic.
+its final value. This makes the localization easy - localization strings are in [localization_strings.py](./localization_strings.py). And cards can be filled with the current information - for example a session name or voting topic.
