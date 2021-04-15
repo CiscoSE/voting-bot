@@ -111,8 +111,7 @@ always and everywhere. Even for a small project. Venv makes the code easily port
 the requirements. Dotenv is a way to keep your sensitive information safe. No need to paste Access Token or other credentials
 to your code.
 ### Finite-state machine
-[Finite-state machine (FSM)](https://medium.datadriveninvestor.com/state-machine-design-pattern-why-how-example-through-spring-state-machine-part-1-f13872d68c2d) is one of classical software design patterns. The Bot has a couple of states (session active/inactive, voting active/inactive, etc.) so after exploring a few dead ends I figured out that FSM is the way to go. Since many of buttons&cards
-remain in the Space, users can click them any time. So it's important that the Bot responds only to the clicks (events) which are related to the current state.
+[Finite-state machine (FSM)](https://medium.datadriveninvestor.com/state-machine-design-pattern-why-how-example-through-spring-state-machine-part-1-f13872d68c2d) is one of the classical software design patterns. The Bot has a couple of states (session active/inactive, voting active/inactive, etc.). After exploring a few dead ends I figured out that FSM is the way to go. Since many of buttons&cards remain in the Space, users can click them any time. So it's important that the Bot responds only to the clicks (events) which are related to the current state.
 ### Webex Buttons & Cards Designer
 Apart of the official [Adaptive cards designer](https://adaptivecards.io/designer/) there is [Webex Buttons & Cards Designer](https://developer.webex.com/buttons-and-cards-designer) which provides the set of features implemented in Webex and is using the Webex UI look end feel. The designer output is in JSON format so in order to import it into Python you can do just a copy&paste and then
 replace **true** with **True** and you end up with a native Python dict. This is useful for removing duplicities. In the code
