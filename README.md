@@ -96,7 +96,7 @@ implement all DynamoDB features and some parts are not fully tested but it serve
 a bit how to use NoSQL.
 ### HTTP GET / POST to the same URL
 [Webhooks](https://developer.webex.com/docs/api/guides/webhooks) need to be registered to the Webex platform. When your application is hosted in a public cloud like AWS, you can't easily
-chose the public hostname at which your webhook is listening. You can't set it upfront in the application configuration. Typically
+chose the public hostname at which your webhook is listening. And you can't set it upfront in the application configuration. Typically
 you learn the hostname (and URL) after the application is installed. Webhook is using HTTP POST method, so GET is available for
 something different. For example to receive a manual request from your web browser.
 
