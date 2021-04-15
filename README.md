@@ -115,7 +115,7 @@ to your code.
 remain in the Space, users can click them any time. So it's important that the Bot responds only to the clicks (events) which are related to the current state.
 ### Webex Buttons & Cards Designer
 Apart of the official [Adaptive cards designer](https://adaptivecards.io/designer/) there is [Webex Buttons & Cards Designer](https://developer.webex.com/buttons-and-cards-designer) which provides the set of features implemented in Webex and is using the Webex UI look end feel. The designer output is in JSON format so in order to import it into Python you can do just a copy&paste and then
-replace **true** with **True** and you and up with native Python dict. This is useful for removing duplicities. In the code
+replace **true** with **True** and you end up with a native Python dict. This is useful for removing duplicities. In the code
 the cards can be composed of a skeleton structure and then a couple of references to commonly used blocks. See for example
 how `SETTINGS_BLOCK` is used in [bot_buttons_cards.py](./bot_buttons_cards.py).
 
