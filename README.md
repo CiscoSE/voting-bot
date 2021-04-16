@@ -1,3 +1,4 @@
+[![published](https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg)](https://developer.cisco.com/codeexchange/github/repo/CiscoSE/voting-bot)  
 [What is Voting Bot](#what-is-voting-bot)  
 [How to run](#how-to-run)  
 [Installing & running locally](#installing--running-locally)  
