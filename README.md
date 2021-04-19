@@ -4,7 +4,7 @@
 [Installing & running locally](#installing--running-locally)  
 [AWS Lambda / Zappa Notes](#aws-lambda--zappa-notes)  
 [What I've learned, interesting parts of the code](#what-ive-learned-interesting-parts-of-the-code)  
-[Help, contribute](#help-contribute)  
+[Help, contribute](#help-contrib)  
 ## What is Voting Bot
 Poll (Voting) Bot is a demonstration of how [Buttons & Cards](https://developer.webex.com/docs/api/guides/cards) can be used in a Webex Space. The major benefits are:
 * **easy-to-use user interface** - no need for text-based interaction
@@ -90,5 +90,5 @@ Apart of the official [Adaptive cards designer](https://adaptivecards.io/designe
 
 On top of that I've changed all strings to be referenced indirectly and put in place using `bot_buttons_cards.nested_replace()`. Any string in a message or a card can be referenced by `{{keyword}}`. `nested_replace()` converts the card or an original string to its final value. This makes the localization easy - localization strings are in [localization_strings.py](./localization_strings.py). And cards can be filled with the current information - for example a session name or voting topic.
 
-## Help, contribute
+## <a id="help-contrib"></a>Help, contribute
 The Bot is created as multi-lingual. If you want to add a localization to your language, submit your change to [localization_strings.py](./localization_strings.py). Of course other modifications are welcome.
